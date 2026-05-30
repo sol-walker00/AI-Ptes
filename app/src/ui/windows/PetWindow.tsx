@@ -1,7 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { BookOpen, Heart, MessageCircle, Moon, Sparkles, Target, Utensils } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { defaultPetAvatar, normalizePetAvatar } from '../../domain/petAvatar';
+import { normalizePetAvatar } from '../../domain/petAvatar';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
 import { defaultModelSettings } from '../../domain/modelSettings';
 import {
@@ -29,20 +29,12 @@ import { StatusBars } from '../components/StatusBars';
 
 const nowIso = () => new Date().toISOString();
 
-const defaultProfile: PetProfile = {
-  name: '桃桃',
-  species: '桌面小猫',
-  personaId: 'healing',
-  avatar: defaultPetAvatar(),
-  createdAt: nowIso(),
-};
-
 const defaultSettings: ModelSettings = {
   ...defaultModelSettings,
 };
 
 export function PetWindow() {
-  const [profile, setProfile] = useState<PetProfile>(defaultProfile);
+  const [profile, setProfile] = useState<PetProfile | null>(null);
   const [state, setState] = useState<PetState>(() => createInitialPetState(nowIso()));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(nowIso()));
   const [events, setEvents] = useState<PetEvent[]>([]);
@@ -57,7 +49,11 @@ export function PetWindow() {
   useEffect(() => {
     backend.loadAppData().then((data) => {
       const loadedAt = nowIso();
-      if (data.profile) setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
+      if (data.profile) {
+        setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
+      } else {
+        setProfile(null);
+      }
       if (data.state) setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
       setEvents(data.events);
@@ -74,6 +70,7 @@ export function PetWindow() {
     nextDailyCare = dailyCare,
     nextJournal = journal,
   ) {
+    if (!profile) return;
     await backend.saveAppData({
       profile,
       state: nextState,
@@ -98,6 +95,8 @@ export function PetWindow() {
   }
 
   async function sendQuickMessage() {
+    if (!profile) return;
+
     const trimmed = text.trim();
     if (!trimmed || busy) return;
 
@@ -156,6 +155,18 @@ export function PetWindow() {
   function startDrag(event: MouseEvent<HTMLElement>) {
     if ((event.target as HTMLElement).closest('[data-no-drag], input, textarea, select, form')) return;
     void getCurrentWindow().startDragging().catch(() => undefined);
+  }
+
+  if (!profile) {
+    return (
+      <main className="pet-window pet-window-empty" onMouseDown={startDrag}>
+        <div className="speech-bubble">还没有宠物住进来。</div>
+        <div className="empty-pet-stage" data-no-drag>
+          <strong>去设置窗口导入 adoption.pet</strong>
+          <span>领养完成后，我就会出现在这里。</span>
+        </div>
+      </main>
+    );
   }
 
   return (

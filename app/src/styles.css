@@ -48,6 +48,34 @@ textarea {
   user-select: none;
 }
 
+.pet-window-empty {
+  grid-template-rows: auto 1fr;
+}
+
+.empty-pet-stage {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 18px;
+  text-align: center;
+  background: rgba(255, 252, 244, 0.94);
+  border: 1px dashed rgba(23, 32, 27, 0.22);
+  box-shadow: 0 8px 24px rgba(23, 32, 27, 0.1);
+}
+
+.empty-pet-stage strong {
+  font-size: 14px;
+}
+
+.empty-pet-stage span {
+  font-size: 12px;
+  color: #5b665f;
+  line-height: 1.4;
+}
+
 .speech-bubble,
 .quick-chat,
 .status-bars {

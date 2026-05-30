@@ -10,12 +10,20 @@ mod windows;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let backend_state = app_state::BackendState::load().expect("load backend state");
+    let should_show_settings = backend_state
+        .cache
+        .lock()
+        .map(|data| data.profile.is_none())
+        .unwrap_or(false);
 
     tauri::Builder::default()
         .manage(backend_state)
         .plugin(tauri_plugin_opener::init())
-        .setup(|app| {
+        .setup(move |app| {
             tray::setup_tray(app.handle())?;
+            if should_show_settings {
+                windows::show_window(app.handle(), "settings");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

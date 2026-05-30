@@ -103,6 +103,31 @@ describe('PetWindow', () => {
     expect(avatar.querySelector('[data-layer="body"]')).toHaveAttribute('fill', '#9fd7ff');
   });
 
+  it('does not show a fake default pet before adoption', async () => {
+    vi.mocked(backend.loadAppData).mockResolvedValueOnce({
+      profile: null,
+      state: null,
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
+      dailyCare: null,
+      journal: [],
+    });
+
+    render(<PetWindow />);
+
+    expect(await screen.findByText('还没有宠物住进来。')).toBeInTheDocument();
+    expect(screen.queryByLabelText('custom pet avatar')).not.toBeInTheDocument();
+  });
+
   it('starts dragging from the pet body and passive panels', async () => {
     const { container } = render(<PetWindow />);
 

@@ -58,6 +58,82 @@ describe('SettingsWindow', () => {
     }));
   });
 
+  it('imports an adopted pet when no local profile exists', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(backend.loadAppData).mockResolvedValueOnce({
+      profile: null,
+      state: null,
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
+      dailyCare: null,
+      journal: [],
+    });
+    render(<SettingsWindow />);
+
+    const file = new File([
+      JSON.stringify({
+        format: 'desktop-ai-pet-adoption',
+        version: 1,
+        adoptionId: 'pet_abc123',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        profile: {
+          name: '米糕',
+          species: '桌面小兔',
+          personaId: 'studyBuddy',
+          avatar: {
+            body: 'bunny',
+            primaryColor: '#9fd7ff',
+            secondaryColor: '#e4f5ff',
+            eyeStyle: 'sparkle',
+            mouthStyle: 'smile',
+            cheekStyle: 'peach',
+            accessory: 'headphones',
+          },
+        },
+      }),
+    ], 'adoption.pet', { type: 'application/json' });
+
+    await user.upload(await screen.findByLabelText('选择领养档案'), file);
+
+    expect(await screen.findByText('米糕 已准备回家。')).toBeInTheDocument();
+    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: expect.objectContaining({ body: 'bunny', accessory: 'headphones' }),
+      }),
+      state: expect.objectContaining({
+        mood: 'calm',
+        lastInteractionAt: '2026-05-30T12:00:00.000Z',
+      }),
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T12:00:00.000Z' },
+      events: [],
+      dailyCare: expect.objectContaining({
+        date: '2026-05-30',
+        tasks: expect.arrayContaining([
+          expect.objectContaining({ kind: 'feed' }),
+          expect.objectContaining({ kind: 'chat' }),
+          expect.objectContaining({ kind: 'focus' }),
+          expect.objectContaining({ kind: 'rest' }),
+          expect.objectContaining({ kind: 'reflect' }),
+        ]),
+      }),
+      journal: [],
+      settings: expect.objectContaining({ providerId: 'deepseek' }),
+    }));
+  });
+
   it('switches provider presets and exposes advanced base url settings', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SettingsWindow />);

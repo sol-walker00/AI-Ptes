@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { defaultPetAvatar, normalizePetAvatar } from '../../domain/petAvatar';
+import type { AdoptedAppData } from '../../domain/petAdoption';
 import { createInitialPetState, normalizePetState, restoreStateAfterTime } from '../../domain/petState';
 import { ensureDailyCare } from '../../domain/petLifecycle';
 import { emptyMemory } from '../../domain/memory';
@@ -23,6 +24,7 @@ import type {
   ProviderProtocol,
 } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
+import { AdoptionImportPanel } from '../components/AdoptionImportPanel';
 import { AvatarCustomizer } from '../components/AvatarCustomizer';
 
 const nowIso = () => new Date().toISOString();
@@ -47,17 +49,22 @@ export function SettingsWindow() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [hasLocalProfile, setHasLocalProfile] = useState(true);
+  const [showLocalCreate, setShowLocalCreate] = useState(false);
   const savingRef = useRef(false);
 
   useEffect(() => {
     backend.loadAppData().then((data) => {
       const loadedAt = nowIso();
       if (data.profile) {
+        setHasLocalProfile(true);
         setName(data.profile.name);
         setSpecies(data.profile.species);
         setPersonaId(data.profile.personaId);
         setAvatar(normalizePetAvatar(data.profile.avatar));
         setCreatedAt(data.profile.createdAt);
+      } else {
+        setHasLocalProfile(false);
       }
       if (data.state) setPetState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
@@ -128,6 +135,7 @@ export function SettingsWindow() {
         dailyCare,
         journal,
       });
+      setHasLocalProfile(true);
       setMessage('设置已保存');
     } catch (error) {
       setMessage(`保存失败：${errorText(error)}`);
@@ -137,8 +145,44 @@ export function SettingsWindow() {
     }
   }
 
+  async function importAdoptedPet(data: AdoptedAppData) {
+    await backend.saveAppData(data);
+    setName(data.profile.name);
+    setSpecies(data.profile.species);
+    setPersonaId(data.profile.personaId);
+    setAvatar(data.profile.avatar);
+    setCreatedAt(data.profile.createdAt);
+    setPetState(data.state);
+    setMemory(data.memory);
+    setEvents(data.events);
+    setDailyCare(data.dailyCare);
+    setJournal(data.journal);
+    setSettings(data.settings);
+    setMessage(`${data.profile.name} 已准备回家。`);
+    setHasLocalProfile(true);
+    setShowLocalCreate(false);
+  }
+
   const selectedPreset = findProviderPreset(settings.providerId);
   const showApiKey = settings.auth !== 'none';
+
+  if (!hasLocalProfile && !showLocalCreate) {
+    return (
+      <main className="panel-window settings-window">
+        <AdoptionImportPanel
+          onImport={importAdoptedPet}
+          onCreateLocally={() => {
+            const createdAt = nowIso();
+            setCreatedAt(createdAt);
+            setPetState(createInitialPetState(createdAt));
+            setMemory(emptyMemory(createdAt));
+            setDailyCare(ensureDailyCare(undefined, createdAt));
+            setShowLocalCreate(true);
+          }}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="panel-window settings-window">
