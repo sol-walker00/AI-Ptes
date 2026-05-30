@@ -1,12 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PetWindow } from './PetWindow';
 import { backend } from '../../tauri/commands';
 
+const startDragging = vi.fn().mockResolvedValue(undefined);
+
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
-    startDragging: vi.fn().mockResolvedValue(undefined),
+    startDragging,
   }),
 }));
 
@@ -50,5 +52,27 @@ describe('PetWindow', () => {
         lastInteractionAt: expect.stringMatching(/^2026-05-30T00:05:00\.\d{3}Z$/),
       }),
     }));
+  });
+
+  it('starts dragging from the pet body and passive panels', async () => {
+    const { container } = render(<PetWindow />);
+
+    fireEvent.mouseDown(await screen.findByRole('button', { name: '拖动或点击桃桃' }));
+    fireEvent.mouseDown(container.querySelector('.speech-bubble')!);
+    fireEvent.mouseDown(screen.getByLabelText('pet status'));
+
+    expect(startDragging).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not start dragging from controls that need normal clicks or typing', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<PetWindow />);
+
+    await user.click(await screen.findByRole('button', { name: '快速对话' }));
+    fireEvent.mouseDown(screen.getByLabelText('和桃桃说话'));
+    fireEvent.mouseDown(screen.getByRole('button', { name: '发送' }));
+    fireEvent.mouseDown(screen.getByRole('button', { name: '喂食' }));
+
+    expect(startDragging).not.toHaveBeenCalled();
   });
 });

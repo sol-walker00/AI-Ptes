@@ -94,24 +94,32 @@ export function PetWindow() {
   }
 
   function startDrag(event: MouseEvent<HTMLElement>) {
-    if ((event.target as HTMLElement).closest('button, input, form')) return;
+    if ((event.target as HTMLElement).closest('[data-no-drag], input, textarea, select, form')) return;
     void getCurrentWindow().startDragging().catch(() => undefined);
   }
 
   return (
     <main className="pet-window" onMouseDown={startDrag}>
       <div className="speech-bubble">{bubble}</div>
-      <button className="pet-click-target" onClick={() => setInputOpen((open) => !open)}>
+      <button
+        aria-label={`拖动或点击${profile.name}`}
+        className="pet-click-target"
+        onClick={() => setInputOpen((open) => !open)}
+      >
         <PetSprite action={state.action} />
       </button>
       {inputOpen && (
-        <form className="quick-chat" onSubmit={(event) => { event.preventDefault(); void sendQuickMessage(); }}>
+        <form
+          className="quick-chat"
+          data-no-drag
+          onSubmit={(event) => { event.preventDefault(); void sendQuickMessage(); }}
+        >
           <input aria-label={`和${profile.name}说话`} value={text} onChange={(event) => setText(event.target.value)} />
           <button type="submit" disabled={busy}>发送</button>
         </form>
       )}
       <StatusBars state={state} />
-      <div className="pet-actions">
+      <div className="pet-actions" data-no-drag>
         <ActionButton label="快速对话" onClick={() => setInputOpen((open) => !open)}><MessageCircle size={18} /></ActionButton>
         <ActionButton label="喂食" onClick={() => interact('feed')}><Utensils size={18} /></ActionButton>
         <ActionButton label="摸摸" onClick={() => interact('pet')}><Heart size={18} /></ActionButton>
