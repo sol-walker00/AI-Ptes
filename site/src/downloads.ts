@@ -33,7 +33,9 @@ export function buildDesktopDownloads(options: DesktopDownloadOptions = {}): Des
     {
       platform: 'windows',
       label: '下载 Windows 版',
-      url: baseUrl ? joinDownloadUrl(baseUrl, desktopDownloadFiles.windows) : '',
+      url: baseUrl
+        ? joinDownloadUrl(baseUrl, desktopDownloadFiles.windows)
+        : `/downloads/${desktopDownloadFiles.windows}`,
     },
   ];
 }

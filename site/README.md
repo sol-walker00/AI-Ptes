@@ -22,9 +22,10 @@ npm run build
 
 ## 下载按钮
 
-客户端安装包链接配置在 `src/downloads.ts`。当前仓库内提供 Apple Silicon macOS zip 包：
+客户端安装包链接配置在 `src/downloads.ts`。当前仓库内提供 Apple Silicon macOS zip 包和 Windows x64 zip 包：
 
 - `public/downloads/Desktop-AI-Pet-0.1.0-macos-aarch64.zip`
+- `public/downloads/Desktop-AI-Pet-0.1.0-windows-x64.zip`
 
 当 macOS 或 Windows 下载地址为空时，页面会显示禁用下载按钮和“客户端安装包即将开放”。
 

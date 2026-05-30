@@ -74,6 +74,14 @@ jobs:
 
       - name: Build Windows executable
         working-directory: app
+        env:
+          SIMSIMD_TARGET_SIERRA: '0'
+          SIMSIMD_TARGET_TURIN: '0'
+          SIMSIMD_TARGET_SAPPHIRE: '0'
+          SIMSIMD_TARGET_GENOA: '0'
+          SIMSIMD_TARGET_ICE: '0'
+          SIMSIMD_TARGET_SKYLAKE: '0'
+          SIMSIMD_TARGET_HASWELL: '0'
         run: npm run tauri:build -- --no-bundle --ci
 
       - name: Package Windows executable

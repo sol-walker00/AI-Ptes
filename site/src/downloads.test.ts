@@ -21,12 +21,14 @@ describe('desktop download configuration', () => {
     ]);
   });
 
-  it('keeps Windows unavailable for local builds until a Windows artifact exists', () => {
+  it('uses bundled local desktop downloads when no release base URL is configured', () => {
     const downloads = buildDesktopDownloads();
 
     expect(downloads.find((download) => download.platform === 'macos')?.url).toBe(
       `/downloads/Desktop-AI-Pet-${releaseVersion}-macos-aarch64.zip`,
     );
-    expect(downloads.find((download) => download.platform === 'windows')?.url).toBe('');
+    expect(downloads.find((download) => download.platform === 'windows')?.url).toBe(
+      `/downloads/Desktop-AI-Pet-${releaseVersion}-windows-x64.zip`,
+    );
   });
 });
