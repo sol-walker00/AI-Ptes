@@ -12,7 +12,8 @@ export type PetAction =
   | 'focused'
   | 'sick';
 
-export type PetPersonaId = 'healing' | 'tsundere' | 'studyBuddy' | 'energetic';
+export const petPersonaIds = ['healing', 'tsundere', 'studyBuddy', 'energetic'] as const;
+export type PetPersonaId = typeof petPersonaIds[number];
 
 export type PetEventKind = 'feed' | 'pet' | 'chat' | 'rest' | 'ignore' | 'clean' | 'focus' | 'reflect';
 export type PetLifeStage = 'child' | 'teen' | 'adult';
