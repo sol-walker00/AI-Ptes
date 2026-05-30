@@ -73,7 +73,7 @@ export function downloadAdoptionDocument(document: PetAdoptionDocument): void {
 function createAdoptionId(): string {
   const cryptoApi = globalThis.crypto;
   if (typeof cryptoApi?.randomUUID === 'function') {
-    return `pet_${cryptoApi.randomUUID().replaceAll('-', '')}`;
+    return `pet_${cryptoApi.randomUUID().replace(/-/g, '')}`;
   }
 
   return `pet_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
