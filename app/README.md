@@ -32,6 +32,12 @@ npm run tauri:dev
 
 内置供应商包括 DeepSeek、OpenAI、Anthropic、Gemini、Qwen/百炼、Kimi/Moonshot、Z.AI/GLM、OpenRouter、SiliconFlow、Ollama/本地和自定义端点。宠物状态、模型设置和记忆摘要会保存在应用数据目录，API key 只保存在系统安全存储中。
 
+## 领养档案导入
+
+首次启动桌面 App 时，如果本地还没有宠物，设置窗口会自动打开并显示导入入口。选择从领养站下载的 `adoption.pet` 后，App 会把档案转换成本地宠物资料、初始状态、空记忆和当天照顾任务。
+
+`.pet` 文件只包含宠物出生档案，不包含 API key、聊天记录、长期记忆或成长状态。模型供应商和 API key 仍然在桌面 App 本机设置。
+
 ## 验证
 
 ```bash
