@@ -35,6 +35,20 @@ describe('petBrain', () => {
 
     expect(reply.action).toBe('affectionate');
     expect(reply.text).toBe('抱抱你，我会陪着你的。');
+    expect(reply.nextState.intimacy).toBe(10);
+  });
+
+  it('does not count an assistant reply as another chat interaction', () => {
+    const state = {
+      ...createInitialPetState('2026-05-30T00:05:00.000Z'),
+      energy: 74,
+      intimacy: 12,
+      action: 'thinking' as const,
+    };
+    const reply = mapAssistantTextToReply('我想试试这个办法。', state);
+
+    expect(reply.nextState.energy).toBe(74);
     expect(reply.nextState.intimacy).toBe(12);
+    expect(reply.nextState.lastInteractionAt).toBe('2026-05-30T00:05:00.000Z');
   });
 });

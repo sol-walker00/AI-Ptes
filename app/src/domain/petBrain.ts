@@ -1,5 +1,4 @@
 import type { MemorySummary, PetProfile, PetReply, PetState } from './petTypes';
-import { applyInteraction } from './petState';
 
 export interface AiMessage {
   role: 'system' | 'user' | 'assistant';
@@ -49,7 +48,8 @@ export function mapAssistantTextToReply(text: string, state: PetState): PetReply
     text,
     action,
     nextState: {
-      ...applyInteraction(state, 'chat', state.lastInteractionAt),
+      ...state,
+      mood: action === 'affectionate' || action === 'happy' ? 'happy' : state.mood,
       action,
     },
   };

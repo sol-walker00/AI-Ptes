@@ -1,8 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatWindow } from './ChatWindow';
+import { PetWindow } from './PetWindow';
 import { backend } from '../../tauri/commands';
+
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    startDragging: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
 
 vi.mock('../../tauri/commands', () => ({
   backend: {
@@ -12,12 +18,12 @@ vi.mock('../../tauri/commands', () => ({
       settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
       memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
     }),
-    sendPetChat: vi.fn().mockResolvedValue({ text: '我在这里陪你。' }),
+    sendPetChat: vi.fn().mockResolvedValue({ text: '我会陪着你。' }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
   },
 }));
 
-describe('ChatWindow', () => {
+describe('PetWindow', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-05-30T00:05:00.000Z'));
@@ -28,23 +34,20 @@ describe('ChatWindow', () => {
     vi.clearAllMocks();
   });
 
-  it('sends user message and shows pet reply', async () => {
+  it('counts quick chat as one interaction when saving pet state', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<ChatWindow />);
+    render(<PetWindow />);
 
-    await user.type(await screen.findByLabelText('聊天输入'), '今天好累');
-    await user.click(screen.getByRole('button', { name: '发送消息' }));
+    await user.click(await screen.findByRole('button', { name: '快速对话' }));
+    await user.type(screen.getByLabelText('和桃桃说话'), '陪我写代码');
+    await user.click(screen.getByRole('button', { name: '发送' }));
 
-    expect(await screen.findByText('今天好累')).toBeInTheDocument();
-    expect(await screen.findByText('我在这里陪你。')).toBeInTheDocument();
+    expect(await screen.findByText('我会陪着你。')).toBeInTheDocument();
     expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
       state: expect.objectContaining({
         energy: 74,
         intimacy: 12,
         lastInteractionAt: expect.stringMatching(/^2026-05-30T00:05:00\.\d{3}Z$/),
-      }),
-      memory: expect.objectContaining({
-        facts: expect.arrayContaining([expect.stringContaining('今天好累')]),
       }),
     }));
   });

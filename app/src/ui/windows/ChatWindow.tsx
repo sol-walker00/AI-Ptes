@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
-import { createInitialPetState } from '../../domain/petState';
+import { applyInteraction, createInitialPetState } from '../../domain/petState';
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
 import type { MemorySummary, ModelSettings, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
@@ -36,16 +36,18 @@ export function ChatWindow() {
     setMessages((current) => [...current, userMessage]);
     setText('');
     setBusy(true);
+    const thinking = applyInteraction(state, 'chat', nowIso());
+    setState(thinking);
 
     try {
-      const aiMessages = buildPetMessages({ profile, state, memory, userText: trimmed });
+      const aiMessages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
       const response = await backend.sendPetChat({
         baseUrl: settings.baseUrl,
         model: settings.model,
         temperature: settings.temperature,
         messages: aiMessages,
       });
-      const reply = mapAssistantTextToReply(response.text, state);
+      const reply = mapAssistantTextToReply(response.text, thinking);
       const nextMemory = updateMemorySummary(memory, `用户说：${trimmed} 宠物回应：${reply.text}`, nowIso());
       const petMessage: UiChatMessage = { id: id(), role: 'pet', content: reply.text, createdAt: nowIso() };
       setMessages((current) => [...current, petMessage]);

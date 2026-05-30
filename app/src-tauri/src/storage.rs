@@ -44,7 +44,13 @@ impl LocalStore {
             return Ok(AppData::default());
         }
         let contents = fs::read_to_string(path)?;
-        Ok(serde_json::from_str(&contents)?)
+        match serde_json::from_str(&contents) {
+            Ok(data) => Ok(data),
+            Err(_) => {
+                let _ = fs::write(self.data_dir.join("app-data.corrupt.json"), contents);
+                Ok(AppData::default())
+            }
+        }
     }
 
     pub fn save_app_data(&self, data: &AppData) -> Result<(), StorageError> {
@@ -71,5 +77,18 @@ mod tests {
 
         assert_eq!(loaded.settings.model, "gpt-4.1-mini");
         assert_eq!(loaded.memory.facts.len(), 0);
+    }
+
+    #[test]
+    fn corrupted_app_data_falls_back_to_default_and_is_backed_up() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store = LocalStore::new_for_tests(dir.path().to_path_buf());
+        fs::create_dir_all(dir.path()).expect("create data dir");
+        fs::write(store.data_file(), "{not valid json").expect("write corrupted data");
+
+        let loaded = store.load_app_data().expect("load default data");
+
+        assert_eq!(loaded.settings.model, "gpt-4.1-mini");
+        assert!(dir.path().join("app-data.corrupt.json").exists());
     }
 }

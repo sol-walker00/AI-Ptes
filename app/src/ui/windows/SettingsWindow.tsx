@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createInitialPetState } from '../../domain/petState';
 import { emptyMemory } from '../../domain/memory';
 import type { MemorySummary, ModelSettings, PetPersonaId, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
 
 const nowIso = () => new Date().toISOString();
+const errorText = (error: unknown) => error instanceof Error ? error.message : String(error);
 
 export function SettingsWindow() {
   const initialCreatedAt = nowIso();
@@ -22,6 +23,8 @@ export function SettingsWindow() {
   const [apiKey, setApiKey] = useState('');
   const [keyStatus, setKeyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     backend.loadAppData().then((data) => {
@@ -39,19 +42,32 @@ export function SettingsWindow() {
   }, []);
 
   async function save() {
-    const profile: PetProfile = { name, species, personaId, createdAt };
-    if (apiKey.trim()) {
-      const masked = await backend.saveApiKey(apiKey.trim());
-      setKeyStatus(masked);
-      setApiKey('');
+    if (savingRef.current) return;
+
+    savingRef.current = true;
+    setSaving(true);
+    setMessage('');
+
+    try {
+      const profile: PetProfile = { name, species, personaId, createdAt };
+      if (apiKey.trim()) {
+        const masked = await backend.saveApiKey(apiKey.trim());
+        setKeyStatus(masked);
+        setApiKey('');
+      }
+      await backend.saveAppData({
+        profile,
+        state: petState,
+        settings,
+        memory,
+      });
+      setMessage('设置已保存');
+    } catch (error) {
+      setMessage(`保存失败：${errorText(error)}`);
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
-    await backend.saveAppData({
-      profile,
-      state: petState,
-      settings,
-      memory,
-    });
-    setMessage('设置已保存');
   }
 
   return (
@@ -87,8 +103,10 @@ export function SettingsWindow() {
         <input type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} />
       </label>
       {keyStatus && <p className="key-status">{keyStatus}</p>}
-      {message && <p className="save-message">{message}</p>}
-      <button className="primary-button" onClick={() => void save()}>保存设置</button>
+      {message && <p className="save-message" role="status">{message}</p>}
+      <button className="primary-button" onClick={() => void save()} disabled={saving}>
+        {saving ? '保存中...' : '保存设置'}
+      </button>
     </main>
   );
 }

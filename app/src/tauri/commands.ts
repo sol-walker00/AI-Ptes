@@ -35,7 +35,13 @@ function defaultAppData(): AppData {
 function loadDevAppData() {
   const raw = localStorage.getItem(devStorageKey);
   if (!raw) return defaultAppData();
-  return JSON.parse(raw) as AppData;
+
+  try {
+    return JSON.parse(raw) as AppData;
+  } catch {
+    localStorage.removeItem(devStorageKey);
+    return defaultAppData();
+  }
 }
 
 function saveDevAppData(data: AppData) {

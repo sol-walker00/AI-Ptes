@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsWindow } from './SettingsWindow';
 import { backend } from '../../tauri/commands';
 
@@ -19,6 +19,10 @@ vi.mock('../../tauri/commands', () => ({
 }));
 
 describe('SettingsWindow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('saves pet profile and masks api key after save', async () => {
     const user = userEvent.setup();
     render(<SettingsWindow />);
@@ -34,5 +38,31 @@ describe('SettingsWindow', () => {
       state: expect.objectContaining({ intimacy: 42 }),
       memory: expect.objectContaining({ facts: ['用户喜欢安静写代码'] }),
     }));
+  });
+
+  it('prevents duplicate saves while a save is already running', async () => {
+    const user = userEvent.setup();
+    vi.mocked(backend.saveAppData).mockImplementationOnce(
+      (data) => new Promise((resolve) => setTimeout(() => resolve(data), 50)),
+    );
+    render(<SettingsWindow />);
+
+    const button = await screen.findByRole('button', { name: '保存设置' });
+    await user.click(button);
+    await user.click(button);
+
+    expect(button).toBeDisabled();
+    expect(backend.saveAppData).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an error when settings cannot be saved', async () => {
+    const user = userEvent.setup();
+    vi.mocked(backend.saveAppData).mockRejectedValueOnce(new Error('disk full'));
+    render(<SettingsWindow />);
+
+    await user.click(await screen.findByRole('button', { name: '保存设置' }));
+
+    expect(await screen.findByText('保存失败：disk full')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '保存设置' })).toBeEnabled();
   });
 });
