@@ -50,10 +50,17 @@ export interface WindowPosition {
   y: number;
 }
 
+export type ProviderProtocol = 'openai-chat' | 'openai-responses' | 'anthropic-messages' | 'gemini-openai';
+export type ProviderAuth = 'bearer' | 'x-api-key' | 'none';
+
 export interface ModelSettings {
+  providerId: string;
+  protocol: ProviderProtocol;
+  auth: ProviderAuth;
   baseUrl: string;
   model: string;
   temperature: number;
+  customHeaders: Record<string, string>;
 }
 
 export interface MemorySummary {

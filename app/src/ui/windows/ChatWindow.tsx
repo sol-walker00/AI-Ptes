@@ -48,9 +48,7 @@ export function ChatWindow() {
     try {
       const aiMessages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
       const response = await backend.sendPetChat({
-        baseUrl: settings.baseUrl,
-        model: settings.model,
-        temperature: settings.temperature,
+        ...settings,
         messages: aiMessages,
       });
       const reply = mapAssistantTextToReply(response.text, thinking);

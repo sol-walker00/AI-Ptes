@@ -70,9 +70,21 @@ async function runCommand<T>(command: string, args?: Record<string, unknown>, fa
 export const backend = {
   loadAppData: () => runCommand<AppData>('load_app_data', undefined, loadDevAppData),
   saveAppData: (data: AppData) => runCommand<AppData>('save_app_data', { data }, () => saveDevAppData(data)),
-  saveApiKey: (apiKey: string) => runCommand<string>('save_api_key', { apiKey }, () => `sk-...${apiKey.slice(-4)}`),
-  clearApiKey: () => runCommand<void>('clear_api_key', undefined, () => undefined),
-  getApiKeyStatus: () => runCommand<string | null>('get_api_key_status', undefined, () => null),
+  saveApiKey: (providerId: string, apiKey: string) =>
+    runCommand<string>('save_api_key', { providerId, apiKey }, () => `已保存 ****${apiKey.slice(-4)}`),
+  clearApiKey: (providerId: string) => runCommand<void>('clear_api_key', { providerId }, () => undefined),
+  getApiKeyStatus: (providerId: string) => runCommand<string | null>('get_api_key_status', { providerId }, () => null),
+  testProviderConnection: (settings: AppData['settings'], apiKey?: string) =>
+    runCommand<string>('test_provider_connection', {
+      request: {
+        ...settings,
+        messages: [
+          { role: 'system', content: '你是桌面宠物连接测试。' },
+          { role: 'user', content: '请回复 OK。' },
+        ],
+      },
+      apiKey: apiKey || null,
+    }, () => '连接成功'),
   sendPetChat: (request: SendPetChatRequest) =>
     runCommand<SendPetChatResponse>('send_pet_chat', { request }, () => ({
       text: '预览模式下我先用本地回复陪你。放进桌面 App 后，就会用你设置的 API key 和模型来回答。',

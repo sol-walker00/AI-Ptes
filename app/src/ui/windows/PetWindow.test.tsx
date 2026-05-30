@@ -17,7 +17,15 @@ vi.mock('../../tauri/commands', () => ({
     loadAppData: vi.fn().mockResolvedValue({
       profile: { name: '桃桃', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
       state: { mood: 'calm', hunger: 20, energy: 80, intimacy: 10, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
-      settings: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', temperature: 0.7 },
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
       memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
       events: [],
     }),

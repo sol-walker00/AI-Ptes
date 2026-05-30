@@ -24,6 +24,7 @@ pub fn run() {
             commands::save_api_key,
             commands::clear_api_key,
             commands::get_api_key_status,
+            commands::test_provider_connection,
             commands::send_pet_chat
         ])
         .run(tauri::generate_context!())

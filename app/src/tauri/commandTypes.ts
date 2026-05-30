@@ -10,9 +10,13 @@ export interface AppData {
 }
 
 export interface SendPetChatRequest {
+  providerId: string;
+  protocol: string;
+  auth: string;
   baseUrl: string;
   model: string;
   temperature: number;
+  customHeaders: Record<string, string>;
   messages: AiMessage[];
 }
 

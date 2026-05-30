@@ -171,6 +171,18 @@ textarea {
   font-size: 24px;
 }
 
+.settings-section {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #eadfcd;
+  padding-top: 14px;
+}
+
+.settings-section h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
 .settings-window label {
   display: grid;
   gap: 6px;
@@ -187,6 +199,12 @@ textarea {
   background: #fffdf7;
 }
 
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .primary-button {
   min-height: 40px;
   border: 0;
@@ -195,6 +213,22 @@ textarea {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+}
+
+.secondary-button {
+  min-height: 38px;
+  border: 1px solid #cfc2ad;
+  border-radius: 7px;
+  background: #fffdf7;
+  color: #2e2b28;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .key-status,

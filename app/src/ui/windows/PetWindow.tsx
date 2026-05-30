@@ -70,9 +70,7 @@ export function PetWindow() {
     try {
       const messages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
       const response = await backend.sendPetChat({
-        baseUrl: settings.baseUrl,
-        model: settings.model,
-        temperature: settings.temperature,
+        ...settings,
         messages,
       });
       const reply = mapAssistantTextToReply(response.text, thinking);

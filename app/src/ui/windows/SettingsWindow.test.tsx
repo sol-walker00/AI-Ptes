@@ -9,13 +9,22 @@ vi.mock('../../tauri/commands', () => ({
     loadAppData: vi.fn().mockResolvedValue({
       profile: { name: '小梨', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
       state: { mood: 'calm', hunger: 30, energy: 70, intimacy: 42, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
-      settings: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', temperature: 0.7 },
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
       memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
       events: [{ id: 'chat-1', kind: 'chat', createdAt: '2026-05-30T00:00:00.000Z', intensity: 0.5, quality: 0.9, note: '写代码' }],
     }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
     saveApiKey: vi.fn().mockResolvedValue('已保存 ****abcd'),
     getApiKeyStatus: vi.fn().mockResolvedValue(null),
+    testProviderConnection: vi.fn().mockResolvedValue('连接成功'),
   },
 }));
 
@@ -33,12 +42,38 @@ describe('SettingsWindow', () => {
     await user.type(screen.getByLabelText('API key'), 'sk-testabcd');
     await user.click(screen.getByRole('button', { name: '保存设置' }));
 
-    expect(await screen.findByText('已保存 ****abcd')).toBeInTheDocument();
+    expect(await screen.findByText(/已保存 \*\*\*\*abcd/)).toBeInTheDocument();
+    expect(backend.saveApiKey).toHaveBeenCalledWith('deepseek', 'sk-testabcd');
     expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
       profile: expect.objectContaining({ name: '桃桃', createdAt: '2026-05-30T00:00:00.000Z' }),
       state: expect.objectContaining({ intimacy: 42 }),
       memory: expect.objectContaining({ facts: ['用户喜欢安静写代码'] }),
       events: [expect.objectContaining({ id: 'chat-1', kind: 'chat' })],
+    }));
+  });
+
+  it('switches provider presets and exposes advanced base url settings', async () => {
+    const user = userEvent.setup();
+    render(<SettingsWindow />);
+
+    await user.selectOptions(await screen.findByLabelText('供应商'), 'anthropic');
+    expect(screen.getByLabelText('模型')).toHaveValue('claude-sonnet-4-20250514');
+
+    await user.click(screen.getByRole('button', { name: '高级设置' }));
+    expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.anthropic.com/v1');
+    expect(screen.getByLabelText('协议')).toHaveValue('anthropic-messages');
+  });
+
+  it('tests the selected provider connection before saving', async () => {
+    const user = userEvent.setup();
+    render(<SettingsWindow />);
+
+    await user.click(await screen.findByRole('button', { name: '测试连接' }));
+
+    expect(await screen.findByText('连接成功')).toBeInTheDocument();
+    expect(backend.testProviderConnection).toHaveBeenCalledWith(expect.objectContaining({
+      providerId: 'deepseek',
+      model: 'deepseek-v4-flash',
     }));
   });
 

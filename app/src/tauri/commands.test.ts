@@ -13,6 +13,9 @@ describe('backend browser fallback', () => {
 
     expect(data.profile?.name).toBe('桃桃');
     expect(data.state?.mood).toBe('calm');
+    expect(data.settings.providerId).toBe('deepseek');
+    expect(data.settings.protocol).toBe('openai-chat');
+    expect(data.settings.auth).toBe('bearer');
     expect(data.settings.baseUrl).toBe('https://api.deepseek.com');
     expect(data.settings.model).toBe('deepseek-v4-flash');
     expect(data.events).toEqual([]);
@@ -23,7 +26,15 @@ describe('backend browser fallback', () => {
     localStorage.setItem('ai-pet-dev-app-data', JSON.stringify({
       profile: null,
       state: null,
-      settings: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', temperature: 0.7 },
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
       memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
     }));
 
@@ -45,5 +56,6 @@ describe('backend browser fallback', () => {
 
     expect(data.settings.baseUrl).toBe('https://api.deepseek.com');
     expect(data.settings.model).toBe('deepseek-v4-flash');
+    expect(data.settings.providerId).toBe('deepseek');
   });
 });

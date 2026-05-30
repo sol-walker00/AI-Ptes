@@ -1,6 +1,6 @@
 # 桌面 AI 宠物
 
-一个桌面优先的 QQ 宠物式 AI 伴侣原型。宠物窗口常驻桌面，设置窗口默认接入 DeepSeek 的 OpenAI-compatible API 配置，聊天窗口提供更完整的对话体验。
+一个桌面优先的 QQ 宠物式 AI 伴侣原型。宠物窗口常驻桌面，设置窗口提供模型供应商中心，聊天窗口提供更完整的对话体验。
 
 ## 运行
 
@@ -25,11 +25,12 @@ npm run tauri:dev
 
 第一次运行后，在设置窗口里填写：
 
-- `Base URL`：默认 `https://api.deepseek.com`
+- `供应商`：默认 `DeepSeek`
 - `模型`：默认 `deepseek-v4-flash`
-- `API key`：存入系统钥匙串，不写入本地 JSON
+- `API key`：按供应商分别存入系统钥匙串，不写入本地 JSON
+- `高级设置`：可查看或调整 Base URL、协议和自定义供应商鉴权
 
-宠物状态、模型设置和记忆摘要会保存在应用数据目录，API key 只保存在系统安全存储中。
+内置供应商包括 DeepSeek、OpenAI、Anthropic、Gemini、Qwen/百炼、Kimi/Moonshot、Z.AI/GLM、OpenRouter、SiliconFlow、Ollama/本地和自定义端点。宠物状态、模型设置和记忆摘要会保存在应用数据目录，API key 只保存在系统安全存储中。
 
 ## 验证
 
