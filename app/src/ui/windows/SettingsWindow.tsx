@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { defaultPetAvatar, normalizePetAvatar } from '../../domain/petAvatar';
 import { createInitialPetState, normalizePetState, restoreStateAfterTime } from '../../domain/petState';
 import { ensureDailyCare } from '../../domain/petLifecycle';
 import { emptyMemory } from '../../domain/memory';
@@ -9,6 +10,7 @@ import {
   providerPresets,
 } from '../../domain/modelSettings';
 import type {
+  PetAvatar,
   MemorySummary,
   DailyCare,
   ModelSettings,
@@ -21,6 +23,7 @@ import type {
   ProviderProtocol,
 } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
+import { AvatarCustomizer } from '../components/AvatarCustomizer';
 
 const nowIso = () => new Date().toISOString();
 const errorText = (error: unknown) => error instanceof Error ? error.message : String(error);
@@ -30,6 +33,7 @@ export function SettingsWindow() {
   const [name, setName] = useState('桃桃');
   const [species, setSpecies] = useState('桌面小猫');
   const [personaId, setPersonaId] = useState<PetPersonaId>('healing');
+  const [avatar, setAvatar] = useState<PetAvatar>(() => defaultPetAvatar());
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
   const [petState, setPetState] = useState<PetState>(() => createInitialPetState(initialCreatedAt));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(initialCreatedAt));
@@ -52,6 +56,7 @@ export function SettingsWindow() {
         setName(data.profile.name);
         setSpecies(data.profile.species);
         setPersonaId(data.profile.personaId);
+        setAvatar(normalizePetAvatar(data.profile.avatar));
         setCreatedAt(data.profile.createdAt);
       }
       if (data.state) setPetState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
@@ -108,7 +113,7 @@ export function SettingsWindow() {
     setMessage('');
 
     try {
-      const profile: PetProfile = { name, species, personaId, createdAt };
+      const profile: PetProfile = { name, species, personaId, avatar, createdAt };
       if (apiKey.trim()) {
         const masked = await backend.saveApiKey(settings.providerId, apiKey.trim());
         setKeyStatus(masked);
@@ -155,6 +160,7 @@ export function SettingsWindow() {
           <option value="energetic">元气陪伴</option>
         </select>
       </label>
+      <AvatarCustomizer avatar={avatar} onChange={setAvatar} />
       <section className="settings-section">
         <h2>模型供应商</h2>
         <label>

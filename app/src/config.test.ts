@@ -22,4 +22,10 @@ describe('development server configuration', () => {
     expect(petWindow?.height).toBeGreaterThanOrEqual(460);
     expect(styles).toContain('height: 460px;');
   });
+
+  it('keeps the expanded settings page scrollable inside the desktop window', () => {
+    const styles = readFileSync('src/styles.css', 'utf8');
+
+    expect(styles).toMatch(/\.settings-window\s*\{[^}]*height: 100vh;[^}]*overflow: auto;/s);
+  });
 });

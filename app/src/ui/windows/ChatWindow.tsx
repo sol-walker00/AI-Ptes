@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { defaultPetAvatar, normalizePetAvatar } from '../../domain/petAvatar';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
 import { defaultModelSettings } from '../../domain/modelSettings';
 import { applyTaskRewardToState, completeDailyTask, ensureDailyCare, taskRewardFor } from '../../domain/petLifecycle';
@@ -20,7 +21,13 @@ const nowIso = () => new Date().toISOString();
 const id = () => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
 
 export function ChatWindow() {
-  const [profile, setProfile] = useState<PetProfile>({ name: '桃桃', species: '桌面小猫', personaId: 'healing', createdAt: nowIso() });
+  const [profile, setProfile] = useState<PetProfile>({
+    name: '桃桃',
+    species: '桌面小猫',
+    personaId: 'healing',
+    avatar: defaultPetAvatar(),
+    createdAt: nowIso(),
+  });
   const [state, setState] = useState<PetState>(() => createInitialPetState(nowIso()));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(nowIso()));
   const [events, setEvents] = useState<PetEvent[]>([]);
@@ -34,7 +41,7 @@ export function ChatWindow() {
   useEffect(() => {
     backend.loadAppData().then((data) => {
       const loadedAt = nowIso();
-      if (data.profile) setProfile(data.profile);
+      if (data.profile) setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
       if (data.state) setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
       setEvents(data.events);

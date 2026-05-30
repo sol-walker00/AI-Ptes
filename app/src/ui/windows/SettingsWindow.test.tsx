@@ -70,6 +70,29 @@ describe('SettingsWindow', () => {
     expect(screen.getByLabelText('协议')).toHaveValue('anthropic-messages');
   });
 
+  it('saves dress-up avatar selections with the pet profile', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<SettingsWindow />);
+
+    expect(await screen.findByRole('heading', { name: '形象装扮' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '兔兔' }));
+    await user.click(screen.getByRole('button', { name: '主色 天空蓝' }));
+    await user.click(screen.getByRole('button', { name: '星星眼' }));
+    await user.click(screen.getByRole('button', { name: '耳机' }));
+    await user.click(screen.getByRole('button', { name: '保存设置' }));
+
+    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({
+        avatar: expect.objectContaining({
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          eyeStyle: 'sparkle',
+          accessory: 'headphones',
+        }),
+      }),
+    }));
+  });
+
   it('tests the selected provider connection before saving', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SettingsWindow />);

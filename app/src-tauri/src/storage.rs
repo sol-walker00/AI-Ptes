@@ -169,6 +169,48 @@ mod tests {
     }
 
     #[test]
+    fn legacy_profile_loads_with_default_avatar() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store = LocalStore::new_for_tests(dir.path().to_path_buf());
+        fs::create_dir_all(dir.path()).expect("create data dir");
+        fs::write(
+            store.data_file(),
+            r##"{
+              "profile": {
+                "name": "桃桃",
+                "species": "桌面小猫",
+                "personaId": "healing",
+                "createdAt": "2026-05-30T00:00:00.000Z"
+              },
+              "state": null,
+              "settings": {
+                "baseUrl": "https://api.deepseek.com",
+                "model": "deepseek-v4-flash",
+                "temperature": 0.7
+              },
+              "memory": {
+                "facts": [],
+                "recentSummary": "",
+                "updatedAt": "2026-05-30T00:00:00.000Z"
+              },
+              "events": []
+            }"##,
+        )
+        .expect("write legacy profile data");
+
+        let loaded = store.load_app_data().expect("load legacy profile data");
+        let avatar = loaded.profile.expect("profile").avatar;
+
+        assert_eq!(avatar.body, "cat");
+        assert_eq!(avatar.primary_color, "#f6c65b");
+        assert_eq!(avatar.secondary_color, "#fff1bf");
+        assert_eq!(avatar.eye_style, "dot");
+        assert_eq!(avatar.mouth_style, "cat");
+        assert_eq!(avatar.cheek_style, "pink");
+        assert_eq!(avatar.accessory, "none");
+    }
+
+    #[test]
     fn old_built_in_provider_defaults_migrate_to_deepseek() {
         let dir = tempfile::tempdir().expect("tempdir");
         let store = LocalStore::new_for_tests(dir.path().to_path_buf());

@@ -16,7 +16,21 @@ pub struct PetProfile {
     pub name: String,
     pub species: String,
     pub persona_id: String,
+    #[serde(default = "default_pet_avatar")]
+    pub avatar: PetAvatar,
     pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PetAvatar {
+    pub body: String,
+    pub primary_color: String,
+    pub secondary_color: String,
+    pub eye_style: String,
+    pub mouth_style: String,
+    pub cheek_style: String,
+    pub accessory: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -218,6 +232,18 @@ fn default_sleep_state() -> String {
 
 fn default_level() -> u8 {
     1
+}
+
+fn default_pet_avatar() -> PetAvatar {
+    PetAvatar {
+        body: "cat".to_string(),
+        primary_color: "#f6c65b".to_string(),
+        secondary_color: "#fff1bf".to_string(),
+        eye_style: "dot".to_string(),
+        mouth_style: "cat".to_string(),
+        cheek_style: "pink".to_string(),
+        accessory: "none".to_string(),
+    }
 }
 
 fn infer_provider_id(base_url: &str) -> &'static str {

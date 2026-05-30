@@ -17,6 +17,21 @@ export type PetPersonaId = 'healing' | 'tsundere' | 'studyBuddy' | 'energetic';
 export type PetEventKind = 'feed' | 'pet' | 'chat' | 'rest' | 'ignore' | 'clean' | 'focus' | 'reflect';
 export type PetLifeStage = 'child' | 'teen' | 'adult';
 export type PetSleepState = 'awake' | 'drowsy' | 'sleeping' | 'sick';
+export type PetAvatarBody = 'cat' | 'bear' | 'bunny' | 'blob';
+export type PetAvatarEyeStyle = 'dot' | 'sparkle' | 'sleepy';
+export type PetAvatarMouthStyle = 'smile' | 'cat' | 'shy';
+export type PetAvatarCheekStyle = 'none' | 'pink' | 'peach';
+export type PetAvatarAccessory = 'none' | 'bow' | 'cap' | 'headphones' | 'scarf';
+
+export interface PetAvatar {
+  body: PetAvatarBody;
+  primaryColor: string;
+  secondaryColor: string;
+  eyeStyle: PetAvatarEyeStyle;
+  mouthStyle: PetAvatarMouthStyle;
+  cheekStyle: PetAvatarCheekStyle;
+  accessory: PetAvatarAccessory;
+}
 
 export interface PetPersona {
   id: PetPersonaId;
@@ -58,6 +73,7 @@ export interface PetProfile {
   species: string;
   personaId: PetPersonaId;
   createdAt: string;
+  avatar: PetAvatar;
 }
 
 export interface WindowPosition {

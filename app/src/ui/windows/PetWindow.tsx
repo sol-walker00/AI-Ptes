@@ -1,6 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { BookOpen, Heart, MessageCircle, Moon, Sparkles, Target, Utensils } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { defaultPetAvatar, normalizePetAvatar } from '../../domain/petAvatar';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
 import { defaultModelSettings } from '../../domain/modelSettings';
 import {
@@ -32,6 +33,7 @@ const defaultProfile: PetProfile = {
   name: '桃桃',
   species: '桌面小猫',
   personaId: 'healing',
+  avatar: defaultPetAvatar(),
   createdAt: nowIso(),
 };
 
@@ -55,7 +57,7 @@ export function PetWindow() {
   useEffect(() => {
     backend.loadAppData().then((data) => {
       const loadedAt = nowIso();
-      if (data.profile) setProfile(data.profile);
+      if (data.profile) setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
       if (data.state) setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
       setEvents(data.events);
@@ -164,7 +166,7 @@ export function PetWindow() {
         className="pet-click-target"
         onClick={() => setInputOpen((open) => !open)}
       >
-        <PetSprite action={state.action} />
+        <PetSprite action={state.action} avatar={profile.avatar} />
       </button>
       {inputOpen && (
         <form

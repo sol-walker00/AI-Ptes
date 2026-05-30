@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { defaultPetAvatar } from '../../domain/petAvatar';
 import { PetWindow } from './PetWindow';
 import { backend } from '../../tauri/commands';
 
@@ -64,6 +65,42 @@ describe('PetWindow', () => {
         expect.objectContaining({ kind: 'chat', note: '陪我写代码' }),
       ]),
     }));
+  });
+
+  it('renders the saved custom avatar in the desktop pet body', async () => {
+    vi.mocked(backend.loadAppData).mockResolvedValueOnce({
+      profile: {
+        name: '桃桃',
+        species: '桌面小兔',
+        personaId: 'healing',
+        createdAt: '2026-05-30T00:00:00.000Z',
+        avatar: {
+          ...defaultPetAvatar(),
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          accessory: 'headphones',
+        },
+      },
+      state: { mood: 'calm', hunger: 20, energy: 80, intimacy: 10, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
+    });
+    render(<PetWindow />);
+
+    const avatar = await screen.findByLabelText('custom pet avatar');
+
+    expect(avatar).toHaveAttribute('data-avatar-body', 'bunny');
+    expect(avatar).toHaveAttribute('data-avatar-accessory', 'headphones');
+    expect(avatar.querySelector('[data-layer="body"]')).toHaveAttribute('fill', '#9fd7ff');
   });
 
   it('starts dragging from the pet body and passive panels', async () => {

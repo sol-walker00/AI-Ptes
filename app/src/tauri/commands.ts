@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { AppData, SendPetChatRequest, SendPetChatResponse } from './commandTypes';
+import { defaultPetAvatar, normalizePetAvatar } from '../domain/petAvatar';
 import { emptyMemory } from '../domain/memory';
 import { defaultModelSettings, migrateBuiltInModelSettings } from '../domain/modelSettings';
 import { ensureDailyCare } from '../domain/petLifecycle';
@@ -23,6 +24,7 @@ function defaultAppData(): AppData {
       species: '桌面小猫',
       personaId: 'healing',
       createdAt,
+      avatar: defaultPetAvatar(),
     },
     state: createInitialPetState(createdAt),
     settings: { ...defaultModelSettings },
@@ -37,6 +39,7 @@ function normalizeAppData(data: AppData): AppData {
   const now = nowIso();
   return {
     ...data,
+    profile: data.profile ? { ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) } : data.profile,
     state: data.state ? normalizePetState(data.state, now) : data.state,
     settings: migrateBuiltInModelSettings(data.settings),
     events: Array.isArray(data.events) ? data.events : [],

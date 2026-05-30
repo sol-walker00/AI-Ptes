@@ -1,13 +1,9 @@
-import petUrl from '../../assets/pet.svg';
-import type { PetAction } from '../../domain/petTypes';
+import { defaultPetAvatar } from '../../domain/petAvatar';
+import type { PetAction, PetAvatar } from '../../domain/petTypes';
+import { CartoonAvatar } from './CartoonAvatar';
 
-export function PetSprite({ action }: { action: PetAction }) {
+export function PetSprite({ action, avatar = defaultPetAvatar() }: { action: PetAction; avatar?: PetAvatar }) {
   return (
-    <img
-      className={`pet-sprite pet-sprite-${action}`}
-      src={petUrl}
-      alt="AI pet"
-      draggable={false}
-    />
+    <CartoonAvatar avatar={avatar} className={`pet-sprite pet-sprite-${action}`} />
   );
 }
