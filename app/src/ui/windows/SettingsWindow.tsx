@@ -24,11 +24,13 @@ import type {
   ProviderProtocol,
 } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
+import type { AppData } from '../../tauri/commandTypes';
 import { AdoptionImportPanel } from '../components/AdoptionImportPanel';
 import { AvatarCustomizer } from '../components/AvatarCustomizer';
 
 const nowIso = () => new Date().toISOString();
 const errorText = (error: unknown) => error instanceof Error ? error.message : String(error);
+const appDataChanged = (error: unknown) => errorText(error).includes('app data changed');
 
 export function SettingsWindow() {
   const initialCreatedAt = nowIso();
@@ -133,15 +135,18 @@ export function SettingsWindow() {
         setKeyStatus(masked);
         setApiKey('');
       }
-      await backend.saveAppData({
-        profile,
-        state: petState,
-        settings,
-        memory,
-        events,
-        dailyCare,
-        journal,
-      });
+      const savedData = hasLocalProfile
+        ? await saveSettingsOverLatestData(profile)
+        : await backend.saveAppData({
+            profile,
+            state: petState,
+            settings,
+            memory,
+            events,
+            dailyCare,
+            journal,
+          });
+      syncLocalAppData(savedData);
       setHasLocalProfile(true);
       setMessage('设置已保存');
     } catch (error) {
@@ -150,6 +155,38 @@ export function SettingsWindow() {
       savingRef.current = false;
       setSaving(false);
     }
+  }
+
+  async function saveSettingsOverLatestData(profile: PetProfile): Promise<AppData> {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const snapshot = await backend.loadAppDataSnapshot();
+      const nextData: AppData = {
+        ...snapshot.data,
+        profile,
+        settings,
+        events: snapshot.data.events,
+        dailyCare: snapshot.data.dailyCare ?? null,
+        journal: snapshot.data.journal ?? [],
+      };
+
+      try {
+        return (await backend.saveAppDataIfCurrent(nextData, snapshot.revision)).data;
+      } catch (error) {
+        if (appDataChanged(error) && attempt === 0) continue;
+        throw error;
+      }
+    }
+
+    throw new Error('app data changed');
+  }
+
+  function syncLocalAppData(data: AppData) {
+    const loadedAt = nowIso();
+    if (data.state) setPetState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
+    setMemory(data.memory);
+    setEvents(data.events);
+    setDailyCare(ensureDailyCare(data.dailyCare, loadedAt));
+    setJournal(data.journal ?? []);
   }
 
   async function importAdoptedPet(data: AdoptedAppData) {

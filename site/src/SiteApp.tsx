@@ -44,6 +44,7 @@ export function SiteApp() {
   const [avatar, setAvatar] = useState<PetAvatar>(() => defaultPetAvatar());
   const [message, setMessage] = useState('');
   const canAdopt = name.trim().length > 0 && species.trim().length > 0;
+  const hasPendingDownloads = desktopDownloads.some((download) => !download.url);
 
   function updateAvatar(patch: Partial<PetAvatar>) {
     setAvatar((current) => ({ ...current, ...patch }));
@@ -160,7 +161,7 @@ export function SiteApp() {
             )
           ))}
         </div>
-        <span className="download-note">客户端安装包即将开放</span>
+        {hasPendingDownloads && <span className="download-note">客户端安装包即将开放</span>}
       </section>
     </main>
   );

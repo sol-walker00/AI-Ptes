@@ -113,6 +113,13 @@ describe('pet adoption documents', () => {
     }))).toThrow('领养档案不完整，请重新下载');
   });
 
+  it('rejects adoption ids without the pet prefix', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      adoptionId: 'abc123',
+    }))).toThrow('领养档案不完整，请重新下载');
+  });
+
   it('rejects missing or empty species', () => {
     expect(() => parsePetAdoptionText(JSON.stringify({
       ...validDocument,

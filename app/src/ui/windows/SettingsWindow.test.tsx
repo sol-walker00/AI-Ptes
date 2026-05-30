@@ -31,7 +31,28 @@ vi.mock('../../tauri/commands', () => ({
       memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
       events: [{ id: 'chat-1', kind: 'chat', createdAt: '2026-05-30T00:00:00.000Z', intensity: 0.5, quality: 0.9, note: '写代码' }],
     }),
+    loadAppDataSnapshot: vi.fn().mockResolvedValue({
+      revision: 0,
+      data: {
+        profile: { name: '小梨', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
+        state: { mood: 'calm', hunger: 30, energy: 70, intimacy: 42, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
+        settings: {
+          providerId: 'deepseek',
+          protocol: 'openai-chat',
+          auth: 'bearer',
+          baseUrl: 'https://api.deepseek.com',
+          model: 'deepseek-v4-flash',
+          temperature: 0.7,
+          customHeaders: {},
+        },
+        memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
+        events: [{ id: 'chat-1', kind: 'chat', createdAt: '2026-05-30T00:00:00.000Z', intensity: 0.5, quality: 0.9, note: '写代码' }],
+        dailyCare: null,
+        journal: [],
+      },
+    }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
+    saveAppDataIfCurrent: vi.fn().mockImplementation((data) => Promise.resolve({ data, revision: 1 })),
     saveApiKey: vi.fn().mockResolvedValue('已保存 ****abcd'),
     getApiKeyStatus: vi.fn().mockResolvedValue(null),
     testProviderConnection: vi.fn().mockResolvedValue('连接成功'),
@@ -60,12 +81,12 @@ describe('SettingsWindow', () => {
 
     expect(await screen.findByText(/已保存 \*\*\*\*abcd/)).toBeInTheDocument();
     expect(backend.saveApiKey).toHaveBeenCalledWith('deepseek', 'sk-testabcd');
-    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledWith(expect.objectContaining({
       profile: expect.objectContaining({ name: '桃桃', createdAt: '2026-05-30T00:00:00.000Z' }),
       state: expect.objectContaining({ intimacy: 42 }),
       memory: expect.objectContaining({ facts: ['用户喜欢安静写代码'] }),
       events: [expect.objectContaining({ id: 'chat-1', kind: 'chat' })],
-    }));
+    }), 0);
   });
 
   it('imports an adopted pet when no local profile exists', async () => {
@@ -189,7 +210,7 @@ describe('SettingsWindow', () => {
     await user.click(screen.getByRole('button', { name: '耳机' }));
     await user.click(screen.getByRole('button', { name: '保存设置' }));
 
-    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledWith(expect.objectContaining({
       profile: expect.objectContaining({
         avatar: expect.objectContaining({
           body: 'bunny',
@@ -198,7 +219,43 @@ describe('SettingsWindow', () => {
           accessory: 'headphones',
         }),
       }),
-    }));
+    }), 0);
+  });
+
+  it('preserves newer pet state when saving settings from an older settings view', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(backend.loadAppDataSnapshot).mockResolvedValueOnce({
+      revision: 7,
+      data: {
+        profile: { name: '小梨', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
+        state: { mood: 'happy', hunger: 18, energy: 76, intimacy: 55, action: 'hop', lastInteractionAt: '2026-05-30T00:08:00.000Z' },
+        settings: {
+          providerId: 'deepseek',
+          protocol: 'openai-chat',
+          auth: 'bearer',
+          baseUrl: 'https://api.deepseek.com',
+          model: 'deepseek-v4-flash',
+          temperature: 0.7,
+          customHeaders: {},
+        },
+        memory: { facts: ['刚刚聊天'], recentSummary: '用户刚和宠物聊天', updatedAt: '2026-05-30T00:08:00.000Z' },
+        events: [{ id: 'chat-2', kind: 'chat', createdAt: '2026-05-30T00:08:00.000Z', intensity: 0.5, quality: 0.9, note: '新聊天' }],
+        dailyCare: null,
+        journal: [],
+      },
+    });
+    render(<SettingsWindow />);
+
+    await user.clear(await screen.findByLabelText('宠物名字'));
+    await user.type(screen.getByLabelText('宠物名字'), '新名字');
+    await user.click(screen.getByRole('button', { name: '保存设置' }));
+
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({ name: '新名字' }),
+      state: expect.objectContaining({ mood: 'happy', intimacy: 55 }),
+      memory: expect.objectContaining({ facts: ['刚刚聊天'] }),
+      events: [expect.objectContaining({ id: 'chat-2', note: '新聊天' })],
+    }), 7);
   });
 
   it('tests the selected provider connection before saving', async () => {
@@ -216,8 +273,8 @@ describe('SettingsWindow', () => {
 
   it('prevents duplicate saves while a save is already running', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    vi.mocked(backend.saveAppData).mockImplementationOnce(
-      (data) => new Promise((resolve) => setTimeout(() => resolve(data), 50)),
+    vi.mocked(backend.saveAppDataIfCurrent).mockImplementationOnce(
+      (data) => new Promise((resolve) => setTimeout(() => resolve({ data, revision: 1 }), 50)),
     );
     render(<SettingsWindow />);
 
@@ -226,12 +283,12 @@ describe('SettingsWindow', () => {
     await user.click(button);
 
     expect(button).toBeDisabled();
-    expect(backend.saveAppData).toHaveBeenCalledTimes(1);
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledTimes(1);
   });
 
   it('shows an error when settings cannot be saved', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    vi.mocked(backend.saveAppData).mockRejectedValueOnce(new Error('disk full'));
+    vi.mocked(backend.saveAppDataIfCurrent).mockRejectedValueOnce(new Error('disk full'));
     render(<SettingsWindow />);
 
     await user.click(await screen.findByRole('button', { name: '保存设置' }));

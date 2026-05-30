@@ -38,6 +38,7 @@ export interface AdoptedAppData {
 
 type UnknownRecord = Record<string, unknown>;
 const isoUtcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const adoptionIdPattern = /^pet_[A-Za-z0-9_-]{1,64}$/;
 
 export function parsePetAdoptionText(rawText: string): PetAdoptionDocument {
   let parsed: unknown;
@@ -62,7 +63,7 @@ export function parsePetAdoptionText(rawText: string): PetAdoptionDocument {
   return {
     format: petAdoptionFormat,
     version: supportedPetAdoptionVersion,
-    adoptionId: requireText(root.adoptionId),
+    adoptionId: requireAdoptionId(root.adoptionId),
     createdAt,
     profile: {
       name: requireText(profile.name),
@@ -115,6 +116,14 @@ function requireIsoDate(value: unknown): string {
     throw new Error('领养档案不完整，请重新下载');
   }
   return text;
+}
+
+function requireAdoptionId(value: unknown): string {
+  const adoptionId = requireText(value);
+  if (!adoptionIdPattern.test(adoptionId)) {
+    throw new Error('领养档案不完整，请重新下载');
+  }
+  return adoptionId;
 }
 
 function requirePersona(value: unknown): PetPersonaId {
