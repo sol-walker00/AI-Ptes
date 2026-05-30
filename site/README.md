@@ -43,4 +43,4 @@ VITE_DESKTOP_DOWNLOAD_BASE_URL=/downloads npm run build
 
 在推送 `desktop-ai-pet-v*` 标签时，工作流还会把两个桌面客户端下载包上传到同名 GitHub Release。
 
-`.github/workflows/site-pages.yml` 会在 `main` 更新时构建 `site/` 并通过 GitHub Pages 发布领养站。工作流使用 `npm run build -- --base ./`，因此下载链接会随部署路径生成相对地址，适配仓库 Pages 子路径和自定义域名。
+`.github/workflows/site-pages.yml` 会在 `main` 更新时构建 `site/` 并通过 GitHub Pages 发布领养站。工作流使用 `actions/configure-pages@v5`、`actions/upload-pages-artifact@v4` 和 `actions/deploy-pages@v4`。构建命令是 `npm run build -- --base ./`，因此下载链接会随部署路径生成相对地址，适配仓库 Pages 子路径和自定义域名。
