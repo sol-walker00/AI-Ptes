@@ -1,4 +1,13 @@
-import type { ChatMessage, MemorySummary, ModelSettings, PetEvent, PetProfile, PetState } from '../domain/petTypes';
+import type {
+  ChatMessage,
+  DailyCare,
+  MemorySummary,
+  ModelSettings,
+  PetEvent,
+  PetJournalEntry,
+  PetProfile,
+  PetState,
+} from '../domain/petTypes';
 import type { AiMessage } from '../domain/petBrain';
 
 export interface AppData {
@@ -7,6 +16,8 @@ export interface AppData {
   settings: ModelSettings;
   memory: MemorySummary;
   events: PetEvent[];
+  dailyCare?: DailyCare | null;
+  journal?: PetJournalEntry[] | null;
 }
 
 export interface SendPetChatRequest {

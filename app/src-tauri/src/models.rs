@@ -26,8 +26,28 @@ pub struct PetState {
     pub hunger: u8,
     pub energy: u8,
     pub intimacy: u8,
+    #[serde(default = "default_cleanliness")]
+    pub cleanliness: u8,
+    #[serde(default = "default_health")]
+    pub health: u8,
+    #[serde(default = "default_boredom")]
+    pub boredom: u8,
+    #[serde(default = "default_trust")]
+    pub trust: u8,
+    #[serde(default = "default_life_stage")]
+    pub life_stage: String,
+    #[serde(default = "default_sleep_state")]
+    pub sleep_state: String,
+    #[serde(default = "default_level")]
+    pub level: u8,
+    #[serde(default)]
+    pub experience: u8,
+    #[serde(default)]
+    pub coins: u8,
     pub action: String,
     pub last_interaction_at: String,
+    #[serde(default)]
+    pub last_care_at: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -39,6 +59,36 @@ pub struct PetEvent {
     pub intensity: f32,
     pub quality: f32,
     pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyTask {
+    pub id: String,
+    pub kind: String,
+    pub label: String,
+    pub reward_coins: u8,
+    pub reward_experience: u8,
+    pub completed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct DailyCare {
+    pub date: String,
+    pub tasks: Vec<DailyTask>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct PetJournalEntry {
+    pub date: String,
+    pub created_at: String,
+    pub meals: Vec<String>,
+    pub conversations: Vec<String>,
+    pub mood_trail: Vec<String>,
+    pub remembered: Vec<String>,
+    pub relationship: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -74,6 +124,10 @@ pub struct AppData {
     pub memory: MemorySummary,
     #[serde(default)]
     pub events: Vec<PetEvent>,
+    #[serde(default)]
+    pub daily_care: Option<DailyCare>,
+    #[serde(default)]
+    pub journal: Vec<PetJournalEntry>,
 }
 
 impl Default for AppData {
@@ -96,6 +150,8 @@ impl Default for AppData {
                 updated_at: chrono::Utc::now().to_rfc3339(),
             },
             events: Vec::new(),
+            daily_care: None,
+            journal: Vec::new(),
         }
     }
 }
@@ -126,8 +182,42 @@ impl AppData {
             self.settings.model = DEFAULT_MODEL_NAME.to_string();
         }
 
+        if let Some(state) = &mut self.state {
+            if state.last_care_at.trim().is_empty() {
+                state.last_care_at = state.last_interaction_at.clone();
+            }
+        }
+
         self
     }
+}
+
+fn default_cleanliness() -> u8 {
+    78
+}
+
+fn default_health() -> u8 {
+    88
+}
+
+fn default_boredom() -> u8 {
+    25
+}
+
+fn default_trust() -> u8 {
+    10
+}
+
+fn default_life_stage() -> String {
+    "child".to_string()
+}
+
+fn default_sleep_state() -> String {
+    "awake".to_string()
+}
+
+fn default_level() -> u8 {
+    1
 }
 
 fn infer_provider_id(base_url: &str) -> &'static str {

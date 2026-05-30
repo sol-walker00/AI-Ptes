@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsWindow } from './SettingsWindow';
 import { backend } from '../../tauri/commands';
 
@@ -30,11 +30,17 @@ vi.mock('../../tauri/commands', () => ({
 
 describe('SettingsWindow', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-05-30T00:05:00.000Z'));
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('saves pet profile and masks api key after save', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SettingsWindow />);
 
     await user.clear(await screen.findByLabelText('宠物名字'));
@@ -53,7 +59,7 @@ describe('SettingsWindow', () => {
   });
 
   it('switches provider presets and exposes advanced base url settings', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SettingsWindow />);
 
     await user.selectOptions(await screen.findByLabelText('供应商'), 'anthropic');
@@ -65,7 +71,7 @@ describe('SettingsWindow', () => {
   });
 
   it('tests the selected provider connection before saving', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SettingsWindow />);
 
     await user.click(await screen.findByRole('button', { name: '测试连接' }));
@@ -78,7 +84,7 @@ describe('SettingsWindow', () => {
   });
 
   it('prevents duplicate saves while a save is already running', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     vi.mocked(backend.saveAppData).mockImplementationOnce(
       (data) => new Promise((resolve) => setTimeout(() => resolve(data), 50)),
     );
@@ -93,7 +99,7 @@ describe('SettingsWindow', () => {
   });
 
   it('shows an error when settings cannot be saved', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     vi.mocked(backend.saveAppData).mockRejectedValueOnce(new Error('disk full'));
     render(<SettingsWindow />);
 

@@ -6,6 +6,7 @@ import {
   createPetEvent,
   createInitialPetState,
   deriveMood,
+  normalizePetState,
   restoreStateAfterTime,
 } from './petState';
 
@@ -18,9 +19,46 @@ describe('petState', () => {
       hunger: 20,
       energy: 80,
       intimacy: 10,
+      cleanliness: 78,
+      health: 88,
+      boredom: 25,
+      trust: 10,
+      lifeStage: 'child',
+      sleepState: 'awake',
+      level: 1,
+      experience: 0,
+      coins: 0,
       action: 'idle',
       lastInteractionAt: '2026-05-30T00:00:00.000Z',
+      lastCareAt: '2026-05-30T00:00:00.000Z',
     });
+  });
+
+  it('hydrates legacy state with lifecycle defaults', () => {
+    const state = normalizePetState({
+      mood: 'calm',
+      hunger: 28,
+      energy: 64,
+      intimacy: 22,
+      action: 'idle',
+      lastInteractionAt: '2026-05-30T10:00:00.000Z',
+    }, '2026-05-30T11:00:00.000Z');
+
+    expect(state).toEqual(expect.objectContaining({
+      hunger: 28,
+      energy: 64,
+      intimacy: 22,
+      cleanliness: 78,
+      health: 88,
+      boredom: 25,
+      trust: 10,
+      lifeStage: 'child',
+      sleepState: 'awake',
+      level: 1,
+      experience: 0,
+      coins: 0,
+      lastCareAt: '2026-05-30T10:00:00.000Z',
+    }));
   });
 
   it('creates events with interaction quality instead of raw button deltas', () => {
@@ -116,6 +154,52 @@ describe('petState', () => {
     expect(next.energy).toBe(86);
     expect(next.intimacy).toBe(9);
     expect(next.mood).toBe('calm');
+  });
+
+  it('lets real time make the pet dirtier, less healthy, and more bored when ignored', () => {
+    const state = createInitialPetState('2026-05-30T09:00:00.000Z');
+    const next = restoreStateAfterTime(state, '2026-05-30T15:00:00.000Z');
+
+    expect(next.cleanliness).toBe(60);
+    expect(next.health).toBe(82);
+    expect(next.boredom).toBe(49);
+    expect(next.trust).toBe(7);
+  });
+
+  it('cleaning improves cleanliness and health while reducing boredom', () => {
+    const state = {
+      ...createInitialPetState('2026-05-30T12:00:00.000Z'),
+      cleanliness: 35,
+      health: 62,
+      boredom: 70,
+    };
+
+    const next = applyPetEvent(state, createPetEvent('clean', '2026-05-30T12:10:00.000Z'), []);
+
+    expect(next.cleanliness).toBe(75);
+    expect(next.health).toBe(68);
+    expect(next.boredom).toBe(58);
+    expect(next.action).toBe('happy');
+  });
+
+  it('focused work rewards coins, experience, trust, and maturity', () => {
+    const state = {
+      ...createInitialPetState('2026-05-30T12:00:00.000Z'),
+      experience: 95,
+      trust: 30,
+    };
+
+    const next = applyPetEvent(
+      state,
+      createPetEvent('focus', '2026-05-30T12:30:00.000Z', { intensity: 0.8, quality: 0.9 }),
+      [],
+    );
+
+    expect(next.experience).toBe(100);
+    expect(next.level).toBe(2);
+    expect(next.lifeStage).toBe('teen');
+    expect(next.coins).toBe(18);
+    expect(next.trust).toBe(37);
   });
 
   it('keeps only the latest event history for relationship simulation', () => {

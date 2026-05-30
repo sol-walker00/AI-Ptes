@@ -1,4 +1,4 @@
-export type PetMood = 'happy' | 'calm' | 'lonely' | 'sleepy' | 'hungry' | 'confused';
+export type PetMood = 'happy' | 'calm' | 'lonely' | 'sleepy' | 'hungry' | 'confused' | 'sick' | 'bored';
 
 export type PetAction =
   | 'idle'
@@ -7,11 +7,16 @@ export type PetAction =
   | 'confused'
   | 'sleepy'
   | 'hungry'
-  | 'affectionate';
+  | 'affectionate'
+  | 'cleaning'
+  | 'focused'
+  | 'sick';
 
 export type PetPersonaId = 'healing' | 'tsundere' | 'studyBuddy' | 'energetic';
 
-export type PetEventKind = 'feed' | 'pet' | 'chat' | 'rest' | 'ignore';
+export type PetEventKind = 'feed' | 'pet' | 'chat' | 'rest' | 'ignore' | 'clean' | 'focus' | 'reflect';
+export type PetLifeStage = 'child' | 'teen' | 'adult';
+export type PetSleepState = 'awake' | 'drowsy' | 'sleeping' | 'sick';
 
 export interface PetPersona {
   id: PetPersonaId;
@@ -25,8 +30,18 @@ export interface PetState {
   hunger: number;
   energy: number;
   intimacy: number;
+  cleanliness: number;
+  health: number;
+  boredom: number;
+  trust: number;
+  lifeStage: PetLifeStage;
+  sleepState: PetSleepState;
+  level: number;
+  experience: number;
+  coins: number;
   action: PetAction;
   lastInteractionAt: string;
+  lastCareAt: string;
 }
 
 export interface PetEvent {
@@ -67,6 +82,32 @@ export interface MemorySummary {
   facts: string[];
   recentSummary: string;
   updatedAt: string;
+}
+
+export type DailyTaskKind = 'feed' | 'chat' | 'focus' | 'rest' | 'reflect';
+
+export interface DailyTask {
+  id: string;
+  kind: DailyTaskKind;
+  label: string;
+  rewardCoins: number;
+  rewardExperience: number;
+  completedAt?: string;
+}
+
+export interface DailyCare {
+  date: string;
+  tasks: DailyTask[];
+}
+
+export interface PetJournalEntry {
+  date: string;
+  createdAt: string;
+  meals: string[];
+  conversations: string[];
+  moodTrail: string[];
+  remembered: string[];
+  relationship: string;
 }
 
 export interface ChatMessage {

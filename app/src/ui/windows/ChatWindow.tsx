@@ -1,9 +1,17 @@
 import { useEffect, useState } from 'react';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
 import { defaultModelSettings } from '../../domain/modelSettings';
-import { appendPetEvent, applyPetEvent, createInitialPetState, createPetEvent } from '../../domain/petState';
+import { applyTaskRewardToState, completeDailyTask, ensureDailyCare, taskRewardFor } from '../../domain/petLifecycle';
+import {
+  appendPetEvent,
+  applyPetEvent,
+  createInitialPetState,
+  createPetEvent,
+  normalizePetState,
+  restoreStateAfterTime,
+} from '../../domain/petState';
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
-import type { MemorySummary, ModelSettings, PetEvent, PetProfile, PetState } from '../../domain/petTypes';
+import type { DailyCare, MemorySummary, ModelSettings, PetEvent, PetJournalEntry, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
 import type { UiChatMessage } from '../../tauri/commandTypes';
 import { MessageList } from '../components/MessageList';
@@ -16,6 +24,8 @@ export function ChatWindow() {
   const [state, setState] = useState<PetState>(() => createInitialPetState(nowIso()));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(nowIso()));
   const [events, setEvents] = useState<PetEvent[]>([]);
+  const [dailyCare, setDailyCare] = useState<DailyCare>(() => ensureDailyCare(undefined, nowIso()));
+  const [journal, setJournal] = useState<PetJournalEntry[]>([]);
   const [settings, setSettings] = useState<ModelSettings>({ ...defaultModelSettings });
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -23,10 +33,13 @@ export function ChatWindow() {
 
   useEffect(() => {
     backend.loadAppData().then((data) => {
+      const loadedAt = nowIso();
       if (data.profile) setProfile(data.profile);
-      if (data.state) setState(data.state);
+      if (data.state) setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
       setEvents(data.events);
+      setDailyCare(ensureDailyCare(data.dailyCare, loadedAt));
+      setJournal(data.journal ?? []);
       setSettings(data.settings);
     });
   }, []);
@@ -41,9 +54,13 @@ export function ChatWindow() {
     setBusy(true);
     const event = createPetEvent('chat', nowIso(), { userText: trimmed, intensity: 0.5 });
     const nextEvents = appendPetEvent(events, event);
-    const thinking = applyPetEvent(state, event, events);
+    const activeCare = ensureDailyCare(dailyCare, event.createdAt);
+    const reward = taskRewardFor(activeCare, 'chat');
+    const nextDailyCare = completeDailyTask(activeCare, 'chat', event.createdAt);
+    const thinking = applyTaskRewardToState(applyPetEvent(state, event, events), reward);
     setState(thinking);
     setEvents(nextEvents);
+    setDailyCare(nextDailyCare);
 
     try {
       const aiMessages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
@@ -57,7 +74,15 @@ export function ChatWindow() {
       setMessages((current) => [...current, petMessage]);
       setState(reply.nextState);
       setMemory(nextMemory);
-      await backend.saveAppData({ profile, state: reply.nextState, settings, memory: nextMemory, events: nextEvents });
+      await backend.saveAppData({
+        profile,
+        state: reply.nextState,
+        settings,
+        memory: nextMemory,
+        events: nextEvents,
+        dailyCare: nextDailyCare,
+        journal,
+      });
     } catch (error) {
       const petMessage: UiChatMessage = {
         id: id(),

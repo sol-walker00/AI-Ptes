@@ -16,7 +16,7 @@
         "title": "Desktop AI Pet",
         "url": "index.html?window=pet",
         "width": 280,
-        "height": 380,
+        "height": 460,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,

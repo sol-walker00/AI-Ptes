@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { createInitialPetState } from '../../domain/petState';
+import { createInitialPetState, normalizePetState, restoreStateAfterTime } from '../../domain/petState';
+import { ensureDailyCare } from '../../domain/petLifecycle';
 import { emptyMemory } from '../../domain/memory';
 import {
   applyProviderPreset,
@@ -9,8 +10,10 @@ import {
 } from '../../domain/modelSettings';
 import type {
   MemorySummary,
+  DailyCare,
   ModelSettings,
   PetEvent,
+  PetJournalEntry,
   PetPersonaId,
   PetProfile,
   PetState,
@@ -31,6 +34,8 @@ export function SettingsWindow() {
   const [petState, setPetState] = useState<PetState>(() => createInitialPetState(initialCreatedAt));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(initialCreatedAt));
   const [events, setEvents] = useState<PetEvent[]>([]);
+  const [dailyCare, setDailyCare] = useState<DailyCare>(() => ensureDailyCare(undefined, initialCreatedAt));
+  const [journal, setJournal] = useState<PetJournalEntry[]>([]);
   const [settings, setSettings] = useState<ModelSettings>({ ...defaultModelSettings });
   const [apiKey, setApiKey] = useState('');
   const [keyStatus, setKeyStatus] = useState<string | null>(null);
@@ -42,15 +47,18 @@ export function SettingsWindow() {
 
   useEffect(() => {
     backend.loadAppData().then((data) => {
+      const loadedAt = nowIso();
       if (data.profile) {
         setName(data.profile.name);
         setSpecies(data.profile.species);
         setPersonaId(data.profile.personaId);
         setCreatedAt(data.profile.createdAt);
       }
-      if (data.state) setPetState(data.state);
+      if (data.state) setPetState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
       setMemory(data.memory);
       setEvents(data.events);
+      setDailyCare(ensureDailyCare(data.dailyCare, loadedAt));
+      setJournal(data.journal ?? []);
       setSettings(data.settings);
     });
   }, []);
@@ -112,6 +120,8 @@ export function SettingsWindow() {
         settings,
         memory,
         events,
+        dailyCare,
+        journal,
       });
       setMessage('设置已保存');
     } catch (error) {

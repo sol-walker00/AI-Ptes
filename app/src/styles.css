@@ -39,10 +39,10 @@ textarea {
 
 .pet-window {
   width: 280px;
-  height: 380px;
+  height: 460px;
   padding: 8px;
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto auto auto;
   gap: 6px;
   background: transparent;
   user-select: none;
@@ -121,6 +121,7 @@ textarea {
   border-radius: 8px;
   padding: 6px;
   display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 4px;
 }
 
@@ -130,6 +131,15 @@ textarea {
   align-items: center;
   gap: 6px;
   font-size: 11px;
+}
+
+.status-meta {
+  grid-column: 1 / -1;
+}
+
+.status-meta strong {
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .meter {
@@ -149,6 +159,24 @@ textarea {
   display: flex;
   justify-content: center;
   gap: 6px;
+}
+
+.daily-care {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px 8px;
+  background: rgba(255, 252, 244, 0.94);
+  border: 1px solid rgba(23, 32, 27, 0.14);
+  box-shadow: 0 8px 24px rgba(23, 32, 27, 0.1);
+  font-size: 10px;
+}
+
+.task-done {
+  color: #2f6f5e;
+  font-weight: 800;
 }
 
 .icon-button {

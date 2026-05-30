@@ -19,7 +19,7 @@ describe('development server configuration', () => {
     const styles = readFileSync('src/styles.css', 'utf8');
     const petWindow = tauriConfig.app.windows.find((window) => window.label === 'pet');
 
-    expect(petWindow?.height).toBeGreaterThanOrEqual(380);
-    expect(styles).toContain('height: 380px;');
+    expect(petWindow?.height).toBeGreaterThanOrEqual(460);
+    expect(styles).toContain('height: 460px;');
   });
 });

@@ -1,4 +1,4 @@
-import type { PetEvent, PetEventKind, PetMood, PetState } from './petTypes';
+import type { PetEvent, PetEventKind, PetLifeStage, PetMood, PetSleepState, PetState } from './petTypes';
 
 export type PetInteraction = PetEventKind;
 
@@ -10,15 +10,17 @@ export interface PetInteractionContext {
   note?: string;
 }
 
-type MoodInput = Pick<PetState, 'hunger' | 'energy' | 'intimacy'>;
+type MoodInput = Pick<PetState, 'hunger' | 'energy' | 'intimacy'> & Partial<Pick<PetState, 'health' | 'boredom'>>;
 
 const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 const clampUnit = (value: number) => Math.max(0, Math.min(1, Number(value.toFixed(2))));
 const maxEventHistory = 80;
 
 export function deriveMood(input: MoodInput): PetMood {
+  if ((input.health ?? 100) <= 35) return 'sick';
   if (input.hunger >= 75) return 'hungry';
   if (input.energy <= 20) return 'sleepy';
+  if ((input.boredom ?? 0) >= 78) return 'bored';
   if (input.intimacy <= 5) return 'lonely';
   if (input.intimacy >= 60 && input.energy >= 45 && input.hunger <= 45) return 'happy';
   return 'calm';
@@ -30,8 +32,33 @@ export function createInitialPetState(nowIso: string): PetState {
     hunger: 20,
     energy: 80,
     intimacy: 10,
+    cleanliness: 78,
+    health: 88,
+    boredom: 25,
+    trust: 10,
+    lifeStage: 'child',
+    sleepState: 'awake',
+    level: 1,
+    experience: 0,
+    coins: 0,
     action: 'idle',
     lastInteractionAt: nowIso,
+    lastCareAt: nowIso,
+  };
+}
+
+export function normalizePetState(state: Partial<PetState> | null | undefined, nowIso: string): PetState {
+  const baseline = createInitialPetState(state?.lastInteractionAt || nowIso);
+  const merged = {
+    ...baseline,
+    ...(state ?? {}),
+    lastInteractionAt: state?.lastInteractionAt || baseline.lastInteractionAt,
+    lastCareAt: state?.lastCareAt || state?.lastInteractionAt || baseline.lastCareAt,
+  };
+
+  return {
+    ...merged,
+    mood: deriveMood(merged),
   };
 }
 
@@ -83,17 +110,25 @@ export function applyPetEvent(
           ? applyChatEvent(base, event, repetition)
           : event.kind === 'rest'
             ? applyRestEvent(base, repetition)
-            : {
-                ...base,
-                hunger: clamp(base.hunger + 1),
-                intimacy: clamp(base.intimacy - 1),
-                action: 'idle',
-              };
+            : event.kind === 'clean'
+              ? applyCleanEvent(base)
+              : event.kind === 'focus'
+                ? applyFocusEvent(base, event)
+                : event.kind === 'reflect'
+                  ? applyReflectEvent(base, event)
+                  : {
+                      ...base,
+                      hunger: clamp(base.hunger + 1),
+                      intimacy: clamp(base.intimacy - 1),
+                      trust: clamp((base.trust ?? 0) - 1),
+                      action: 'idle',
+                    };
 
   return {
     ...changed,
     mood: deriveEventMood(changed),
     lastInteractionAt: event.createdAt,
+    lastCareAt: event.kind === 'ignore' ? changed.lastCareAt : event.createdAt,
   };
 }
 
@@ -113,6 +148,11 @@ export function restoreStateAfterTime(state: PetState, nowIso: string): PetState
     hunger: clamp(state.hunger + elapsedHours * 4),
     energy: clamp(state.energy + energyDrift),
     intimacy: clamp(state.intimacy - elapsedHours * 0.25),
+    cleanliness: clamp((state.cleanliness ?? 78) - elapsedHours * 3),
+    health: clamp((state.health ?? 88) - elapsedHours * 1),
+    boredom: clamp((state.boredom ?? 25) + elapsedHours * 4),
+    trust: clamp((state.trust ?? 10) - elapsedHours * 0.5),
+    sleepState: deriveSleepState(nowIso, state),
     action: elapsedHours >= 2 ? 'idle' : state.action,
     lastInteractionAt: nowIso,
   };
@@ -138,6 +178,7 @@ function applyFeedEvent(
       hunger: clamp(state.hunger - 6),
       energy: clamp(state.energy - 1),
       intimacy: clamp(state.intimacy - 1),
+      boredom: clamp(state.boredom + 2),
       action: 'confused',
     };
   }
@@ -150,6 +191,9 @@ function applyFeedEvent(
     hunger: clamp(state.hunger - hungerDrop),
     energy: clamp(state.energy + 3),
     intimacy: clamp(state.intimacy + intimacyGain),
+    health: clamp(state.health + 2),
+    boredom: clamp(state.boredom - 8),
+    trust: clamp(state.trust + 2),
     action: 'happy',
   };
 }
@@ -162,6 +206,8 @@ function applyPettingEvent(state: PetState, event: PetEvent, repetition: number)
     hunger: clamp(state.hunger),
     energy: clamp(state.energy),
     intimacy: clamp(state.intimacy + intimacyGain),
+    boredom: clamp(state.boredom - 10),
+    trust: clamp(state.trust + Math.max(1, Math.round(2 * event.quality * repetition))),
     action: intimacyGain <= 1 ? 'confused' : 'affectionate',
   };
 }
@@ -176,6 +222,8 @@ function applyChatEvent(state: PetState, event: PetEvent, repetition: number): P
     hunger: clamp(state.hunger + hungerCost),
     energy: clamp(state.energy - energyCost),
     intimacy: clamp(state.intimacy + intimacyGain),
+    boredom: clamp(state.boredom - Math.round(10 * event.quality)),
+    trust: clamp(state.trust + Math.max(1, Math.round(2 * event.quality * repetition))),
     action: 'thinking',
   };
 }
@@ -188,16 +236,73 @@ function applyRestEvent(state: PetState, repetition: number): PetState {
     hunger: clamp(state.hunger + 2),
     energy: clamp(state.energy + energyGain),
     intimacy: clamp(state.intimacy + Math.round(repetition)),
+    health: clamp(state.health + 4),
+    boredom: clamp(state.boredom - 5),
+    sleepState: 'sleeping',
     action: 'sleepy',
+  };
+}
+
+function applyCleanEvent(state: PetState): PetState {
+  return {
+    ...state,
+    cleanliness: clamp(state.cleanliness + 40),
+    health: clamp(state.health + 6),
+    boredom: clamp(state.boredom - 13),
+    trust: clamp(state.trust + 2),
+    action: 'happy',
+  };
+}
+
+function applyFocusEvent(state: PetState, event: PetEvent): PetState {
+  const nextExperience = clamp(state.experience + Math.round(30 * event.quality));
+  const nextLevel = nextExperience >= 100 ? Math.max(state.level, 2) : state.level;
+  return {
+    ...state,
+    hunger: clamp(state.hunger + 3),
+    energy: clamp(state.energy - 9),
+    boredom: clamp(state.boredom - 14),
+    trust: clamp(state.trust + Math.round(8 * event.quality)),
+    experience: nextExperience,
+    level: nextLevel,
+    lifeStage: deriveLifeStage(nextLevel, nextExperience),
+    coins: clamp(state.coins + Math.round(20 * event.quality)),
+    action: 'focused',
+  };
+}
+
+function applyReflectEvent(state: PetState, event: PetEvent): PetState {
+  return {
+    ...state,
+    intimacy: clamp(state.intimacy + Math.round(4 * event.quality)),
+    trust: clamp(state.trust + Math.round(5 * event.quality)),
+    boredom: clamp(state.boredom - 8),
+    experience: clamp(state.experience + Math.round(10 * event.quality)),
+    coins: clamp(state.coins + 4),
+    action: 'thinking',
   };
 }
 
 function deriveEventMood(state: PetState): PetMood {
   if (state.action === 'confused') return 'confused';
+  if (state.action === 'focused') return state.health <= 35 ? 'sick' : 'happy';
   if ((state.action === 'happy' || state.action === 'affectionate') && state.hunger < 75 && state.energy > 20) {
     return 'happy';
   }
   return deriveMood(state);
+}
+
+function deriveLifeStage(level: number, experience: number): PetLifeStage {
+  if (level >= 5 || experience >= 500) return 'adult';
+  if (level >= 2 || experience >= 100) return 'teen';
+  return 'child';
+}
+
+function deriveSleepState(nowIso: string, state: PetState): PetSleepState {
+  if ((state.health ?? 88) <= 35) return 'sick';
+  if (isNightHour(nowIso) || state.action === 'sleepy') return 'sleeping';
+  if (state.energy <= 25) return 'drowsy';
+  return 'awake';
 }
 
 function repetitionFactor(events: PetEvent[], kind: PetInteraction, nowIso: string) {

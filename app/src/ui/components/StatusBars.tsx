@@ -5,6 +5,10 @@ const rows = [
   ['饥饿', 'hunger'],
   ['精力', 'energy'],
   ['亲密', 'intimacy'],
+  ['清洁', 'cleanliness'],
+  ['健康', 'health'],
+  ['无聊', 'boredom'],
+  ['信任', 'trust'],
 ] as const;
 
 export function StatusBars({ state }: { state: PetState }) {
@@ -25,6 +29,10 @@ export function StatusBars({ state }: { state: PetState }) {
           </div>
         );
       })}
+      <div className="status-row status-meta">
+        <span>成长</span>
+        <strong>{state.lifeStage} · Lv.{state.level} · {state.coins}币</strong>
+      </div>
     </div>
   );
 }

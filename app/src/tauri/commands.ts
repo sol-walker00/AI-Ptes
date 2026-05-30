@@ -2,7 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type { AppData, SendPetChatRequest, SendPetChatResponse } from './commandTypes';
 import { emptyMemory } from '../domain/memory';
 import { defaultModelSettings, migrateBuiltInModelSettings } from '../domain/modelSettings';
-import { createInitialPetState } from '../domain/petState';
+import { ensureDailyCare } from '../domain/petLifecycle';
+import { createInitialPetState, normalizePetState } from '../domain/petState';
 
 const devStorageKey = 'ai-pet-dev-app-data';
 
@@ -27,14 +28,20 @@ function defaultAppData(): AppData {
     settings: { ...defaultModelSettings },
     memory: emptyMemory(createdAt),
     events: [],
+    dailyCare: ensureDailyCare(undefined, createdAt),
+    journal: [],
   };
 }
 
 function normalizeAppData(data: AppData): AppData {
+  const now = nowIso();
   return {
     ...data,
+    state: data.state ? normalizePetState(data.state, now) : data.state,
     settings: migrateBuiltInModelSettings(data.settings),
     events: Array.isArray(data.events) ? data.events : [],
+    dailyCare: ensureDailyCare(data.dailyCare, now),
+    journal: Array.isArray(data.journal) ? data.journal : [],
   };
 }
 
@@ -68,7 +75,7 @@ async function runCommand<T>(command: string, args?: Record<string, unknown>, fa
 }
 
 export const backend = {
-  loadAppData: () => runCommand<AppData>('load_app_data', undefined, loadDevAppData),
+  loadAppData: async () => normalizeAppData(await runCommand<AppData>('load_app_data', undefined, loadDevAppData)),
   saveAppData: (data: AppData) => runCommand<AppData>('save_app_data', { data }, () => saveDevAppData(data)),
   saveApiKey: (providerId: string, apiKey: string) =>
     runCommand<string>('save_api_key', { providerId, apiKey }, () => `已保存 ****${apiKey.slice(-4)}`),

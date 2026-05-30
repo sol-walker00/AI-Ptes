@@ -25,8 +25,32 @@ describe('petBrain', () => {
     expect(messages[0].content).toContain('桃桃');
     expect(messages[0].content).toContain('治愈');
     expect(messages[0].content).toContain('心情 calm');
+    expect(messages[0].content).toContain('清洁 78');
+    expect(messages[0].content).toContain('成长阶段 child');
     expect(messages[0].content).toContain('用户喜欢短回复');
     expect(messages[1]).toEqual({ role: 'user', content: '今天好累' });
+  });
+
+  it('makes persona affect behavior guidance instead of only tone', () => {
+    const state = createInitialPetState('2026-05-30T00:00:00.000Z');
+    const messages = buildPetMessages({
+      profile: {
+        name: '桃桃',
+        species: '桌面小猫',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T00:00:00.000Z',
+      },
+      state,
+      memory: {
+        facts: [],
+        recentSummary: '',
+        updatedAt: '2026-05-30T00:00:00.000Z',
+      },
+      userText: '帮我开始工作',
+    });
+
+    expect(messages[0].content).toContain('更频繁触发任务拆解');
+    expect(messages[0].content).toContain('专注陪伴');
   });
 
   it('maps assistant text to an affectionate reply when sentiment is warm', () => {

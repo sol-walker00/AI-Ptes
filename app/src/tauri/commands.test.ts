@@ -19,6 +19,8 @@ describe('backend browser fallback', () => {
     expect(data.settings.baseUrl).toBe('https://api.deepseek.com');
     expect(data.settings.model).toBe('deepseek-v4-flash');
     expect(data.events).toEqual([]);
+    expect(data.dailyCare?.tasks.map((task) => task.kind)).toEqual(['feed', 'chat', 'focus', 'rest', 'reflect']);
+    expect(data.journal).toEqual([]);
     expect(localStorage.getItem('ai-pet-dev-app-data')).toBeNull();
   });
 
@@ -41,6 +43,8 @@ describe('backend browser fallback', () => {
     const data = await backend.loadAppData();
 
     expect(data.events).toEqual([]);
+    expect(data.dailyCare?.tasks.map((task) => task.kind)).toEqual(['feed', 'chat', 'focus', 'rest', 'reflect']);
+    expect(data.journal).toEqual([]);
   });
 
   it('migrates old built-in provider defaults to DeepSeek', async () => {
