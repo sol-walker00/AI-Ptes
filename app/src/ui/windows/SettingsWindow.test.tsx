@@ -1,0 +1,38 @@
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
+import { SettingsWindow } from './SettingsWindow';
+import { backend } from '../../tauri/commands';
+
+vi.mock('../../tauri/commands', () => ({
+  backend: {
+    loadAppData: vi.fn().mockResolvedValue({
+      profile: { name: '小梨', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
+      state: { mood: 'calm', hunger: 30, energy: 70, intimacy: 42, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
+      settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
+      memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
+    }),
+    saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
+    saveApiKey: vi.fn().mockResolvedValue('已保存 ****abcd'),
+    getApiKeyStatus: vi.fn().mockResolvedValue(null),
+  },
+}));
+
+describe('SettingsWindow', () => {
+  it('saves pet profile and masks api key after save', async () => {
+    const user = userEvent.setup();
+    render(<SettingsWindow />);
+
+    await user.clear(await screen.findByLabelText('宠物名字'));
+    await user.type(screen.getByLabelText('宠物名字'), '桃桃');
+    await user.type(screen.getByLabelText('API key'), 'sk-testabcd');
+    await user.click(screen.getByRole('button', { name: '保存设置' }));
+
+    expect(await screen.findByText('已保存 ****abcd')).toBeInTheDocument();
+    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({ name: '桃桃', createdAt: '2026-05-30T00:00:00.000Z' }),
+      state: expect.objectContaining({ intimacy: 42 }),
+      memory: expect.objectContaining({ facts: ['用户喜欢安静写代码'] }),
+    }));
+  });
+});
