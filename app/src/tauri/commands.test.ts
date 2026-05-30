@@ -62,4 +62,56 @@ describe('backend browser fallback', () => {
     expect(data.settings.model).toBe('deepseek-v4-flash');
     expect(data.settings.providerId).toBe('deepseek');
   });
+
+  it('notifies preview subscribers when app data is saved', async () => {
+    const updates = [];
+    const unsubscribe = await backend.subscribeAppDataUpdates((data) => updates.push(data));
+
+    await backend.saveAppData({
+      profile: {
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: {
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          secondaryColor: '#e4f5ff',
+          eyeStyle: 'sparkle',
+          mouthStyle: 'smile',
+          cheekStyle: 'peach',
+          accessory: 'headphones',
+        },
+      },
+      state: null,
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T12:00:00.000Z' },
+      events: [],
+      dailyCare: null,
+      journal: [],
+    });
+
+    expect(updates).toHaveLength(1);
+    expect(updates[0]).toEqual(expect.objectContaining({
+      profile: expect.objectContaining({
+        name: '米糕',
+        avatar: expect.objectContaining({ body: 'bunny', accessory: 'headphones' }),
+      }),
+      events: [],
+      dailyCare: expect.objectContaining({
+        tasks: expect.arrayContaining([expect.objectContaining({ kind: 'feed' })]),
+      }),
+      journal: [],
+    }));
+
+    unsubscribe();
+  });
 });

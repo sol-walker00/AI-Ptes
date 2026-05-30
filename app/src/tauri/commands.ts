@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { AppData, SendPetChatRequest, SendPetChatResponse } from './commandTypes';
 import { defaultPetAvatar, normalizePetAvatar } from '../domain/petAvatar';
 import { emptyMemory } from '../domain/memory';
@@ -7,6 +8,7 @@ import { ensureDailyCare } from '../domain/petLifecycle';
 import { createInitialPetState, normalizePetState } from '../domain/petState';
 
 const devStorageKey = 'ai-pet-dev-app-data';
+const appDataUpdatedEvent = 'app-data-updated';
 
 function isTauriRuntime() {
   return typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window);
@@ -62,6 +64,7 @@ function loadDevAppData() {
 
 function saveDevAppData(data: AppData) {
   localStorage.setItem(devStorageKey, JSON.stringify(data));
+  window.dispatchEvent(new CustomEvent<AppData>(appDataUpdatedEvent, { detail: data }));
   return data;
 }
 
@@ -80,6 +83,17 @@ async function runCommand<T>(command: string, args?: Record<string, unknown>, fa
 export const backend = {
   loadAppData: async () => normalizeAppData(await runCommand<AppData>('load_app_data', undefined, loadDevAppData)),
   saveAppData: (data: AppData) => runCommand<AppData>('save_app_data', { data }, () => saveDevAppData(data)),
+  subscribeAppDataUpdates: async (callback: (data: AppData) => void) => {
+    if (isTauriRuntime()) {
+      return listen<AppData>(appDataUpdatedEvent, (event) => callback(normalizeAppData(event.payload)));
+    }
+
+    const handler = (event: Event) => {
+      callback(normalizeAppData((event as CustomEvent<AppData>).detail));
+    };
+    window.addEventListener(appDataUpdatedEvent, handler);
+    return () => window.removeEventListener(appDataUpdatedEvent, handler);
+  },
   saveApiKey: (providerId: string, apiKey: string) =>
     runCommand<string>('save_api_key', { providerId, apiKey }, () => `已保存 ****${apiKey.slice(-4)}`),
   clearApiKey: (providerId: string) => runCommand<void>('clear_api_key', { providerId }, () => undefined),

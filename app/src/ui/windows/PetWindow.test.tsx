@@ -4,8 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultPetAvatar } from '../../domain/petAvatar';
 import { PetWindow } from './PetWindow';
 import { backend } from '../../tauri/commands';
+import type { AppData } from '../../tauri/commandTypes';
 
 const startDragging = vi.fn().mockResolvedValue(undefined);
+let appDataUpdateCallback: ((data: AppData) => void) | null = null;
 
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
@@ -32,6 +34,12 @@ vi.mock('../../tauri/commands', () => ({
     }),
     sendPetChat: vi.fn().mockResolvedValue({ text: '我会陪着你。' }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
+    subscribeAppDataUpdates: vi.fn((callback) => {
+      appDataUpdateCallback = callback;
+      return Promise.resolve(() => {
+        if (appDataUpdateCallback === callback) appDataUpdateCallback = null;
+      });
+    }),
   },
 }));
 
@@ -39,6 +47,7 @@ describe('PetWindow', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-05-30T00:05:00.000Z'));
+    appDataUpdateCallback = null;
   });
 
   afterEach(() => {
@@ -126,6 +135,64 @@ describe('PetWindow', () => {
 
     expect(await screen.findByText('还没有宠物住进来。')).toBeInTheDocument();
     expect(screen.queryByLabelText('custom pet avatar')).not.toBeInTheDocument();
+  });
+
+  it('refreshes from empty state when app data is updated after adoption import', async () => {
+    vi.mocked(backend.loadAppData).mockResolvedValueOnce({
+      profile: null,
+      state: null,
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
+      dailyCare: null,
+      journal: [],
+    });
+    render(<PetWindow />);
+
+    expect(await screen.findByText('还没有宠物住进来。')).toBeInTheDocument();
+
+    appDataUpdateCallback?.({
+      profile: {
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: {
+          ...defaultPetAvatar(),
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          accessory: 'headphones',
+        },
+      },
+      state: { mood: 'calm', hunger: 20, energy: 80, intimacy: 10, action: 'idle', lastInteractionAt: '2026-05-30T12:00:00.000Z' },
+      settings: {
+        providerId: 'deepseek',
+        protocol: 'openai-chat',
+        auth: 'bearer',
+        baseUrl: 'https://api.deepseek.com',
+        model: 'deepseek-v4-flash',
+        temperature: 0.7,
+        customHeaders: {},
+      },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T12:00:00.000Z' },
+      events: [],
+      dailyCare: null,
+      journal: [],
+    });
+
+    const avatar = await screen.findByLabelText('custom pet avatar');
+    expect(screen.queryByText('还没有宠物住进来。')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
+    expect(avatar).toHaveAttribute('data-avatar-body', 'bunny');
+    expect(avatar).toHaveAttribute('data-avatar-accessory', 'headphones');
   });
 
   it('starts dragging from the pet body and passive panels', async () => {

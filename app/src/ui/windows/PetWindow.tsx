@@ -23,6 +23,7 @@ import {
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
 import type { DailyCare, MemorySummary, ModelSettings, PetEvent, PetJournalEntry, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
+import type { AppData } from '../../tauri/commandTypes';
 import { ActionButton } from '../components/ActionButton';
 import { PetSprite } from '../components/PetSprite';
 import { StatusBars } from '../components/StatusBars';
@@ -46,21 +47,46 @@ export function PetWindow() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
 
+  function applyAppData(data: AppData) {
+    const loadedAt = nowIso();
+    if (data.profile) {
+      setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
+    } else {
+      setProfile(null);
+    }
+    if (data.state) {
+      setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
+    } else if (data.profile) {
+      setState(createInitialPetState(data.profile.createdAt));
+    }
+    setMemory(data.memory);
+    setEvents(data.events);
+    setDailyCare(ensureDailyCare(data.dailyCare, loadedAt));
+    setJournal(data.journal ?? []);
+    setSettings(data.settings);
+  }
+
   useEffect(() => {
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
+
     backend.loadAppData().then((data) => {
-      const loadedAt = nowIso();
-      if (data.profile) {
-        setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
-      } else {
-        setProfile(null);
-      }
-      if (data.state) setState(restoreStateAfterTime(normalizePetState(data.state, loadedAt), loadedAt));
-      setMemory(data.memory);
-      setEvents(data.events);
-      setDailyCare(ensureDailyCare(data.dailyCare, loadedAt));
-      setJournal(data.journal ?? []);
-      setSettings(data.settings);
+      if (!disposed) applyAppData(data);
     });
+    void backend.subscribeAppDataUpdates((data) => {
+      if (!disposed) applyAppData(data);
+    }).then((unlisten) => {
+      if (disposed) {
+        unlisten();
+      } else {
+        unsubscribe = unlisten;
+      }
+    });
+
+    return () => {
+      disposed = true;
+      unsubscribe?.();
+    };
   }, []);
 
   async function persist(
