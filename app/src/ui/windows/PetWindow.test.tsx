@@ -81,7 +81,7 @@ vi.mock('../../tauri/commands', () => ({
     loadAppDataSnapshot: vi.fn().mockResolvedValue(snapshot()),
     sendPetChat: vi.fn().mockResolvedValue({ text: '我会陪着你。' }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
-    saveAppDataIfCurrent: vi.fn().mockImplementation((data) => Promise.resolve(data)),
+    saveAppDataIfCurrent: vi.fn().mockImplementation((data, expectedRevision) => Promise.resolve(snapshot(data, expectedRevision + 1))),
     subscribeAppDataUpdates: vi.fn(() => Promise.resolve(() => undefined)),
     subscribeAppDataSnapshotUpdates: vi.fn((callback) => {
       appDataSnapshotUpdateCallback = callback;
@@ -238,6 +238,20 @@ describe('PetWindow', () => {
       profile: expect.objectContaining({ name: '桃桃' }),
     }), 0);
     expect(screen.queryByText('我还没有接上大脑，先去设置 API key 吧。')).not.toBeInTheDocument();
+  });
+
+  it('uses the returned revision for consecutive local interactions', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(backend.saveAppDataIfCurrent).mockImplementation((data, expectedRevision) => Promise.resolve(snapshot(data, expectedRevision + 1)));
+    render(<PetWindow />);
+
+    await user.click(await screen.findByRole('button', { name: '喂食' }));
+    await waitFor(() => expect(backend.saveAppDataIfCurrent).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole('button', { name: '摸摸' }));
+
+    await waitFor(() => expect(backend.saveAppDataIfCurrent).toHaveBeenCalledTimes(2));
+    expect(backend.saveAppDataIfCurrent).toHaveBeenNthCalledWith(1, expect.any(Object), 0);
+    expect(backend.saveAppDataIfCurrent).toHaveBeenNthCalledWith(2, expect.any(Object), 1);
   });
 
   it('starts dragging from the pet body and passive panels', async () => {

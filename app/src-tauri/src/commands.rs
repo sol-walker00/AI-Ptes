@@ -63,7 +63,7 @@ pub fn save_app_data_if_current(
     expected_revision: u64,
     state: State<'_, BackendState>,
     app: tauri::AppHandle,
-) -> Result<AppData, String> {
+) -> Result<AppDataSnapshot, String> {
     let snapshot = {
         let mut cache = state.cache.lock().map_err(|_| "state lock failed".to_string())?;
         if cache.revision != expected_revision {
@@ -81,11 +81,11 @@ pub fn save_app_data_if_current(
         }
     };
 
-    if let Err(error) = app.emit("app-data-updated", snapshot) {
+    if let Err(error) = app.emit("app-data-updated", snapshot.clone()) {
         eprintln!("failed to emit app-data-updated: {error}");
     }
 
-    Ok(data)
+    Ok(snapshot)
 }
 
 #[tauri::command]

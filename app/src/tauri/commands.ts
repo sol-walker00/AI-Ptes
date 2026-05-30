@@ -97,7 +97,11 @@ function saveDevAppDataIfCurrent(data: AppData, expectedRevision: number) {
   if (devRevision !== expectedRevision) {
     return Promise.reject(new Error('app data changed'));
   }
-  return saveDevAppData(data);
+  saveDevAppData(data);
+  return {
+    data,
+    revision: devRevision,
+  };
 }
 
 async function runCommand<T>(command: string, args?: Record<string, unknown>, fallback?: () => T | Promise<T>) {
@@ -119,11 +123,11 @@ export const backend = {
   ),
   saveAppData: (data: AppData) => runCommand<AppData>('save_app_data', { data }, () => saveDevAppData(data)),
   saveAppDataIfCurrent: (data: AppData, expectedRevision: number) =>
-    runCommand<AppData>(
+    runCommand<AppDataSnapshot>(
       'save_app_data_if_current',
       { data, expectedRevision },
       () => saveDevAppDataIfCurrent(data, expectedRevision),
-    ),
+    ).then(normalizeAppDataSnapshot),
   subscribeAppDataSnapshotUpdates: async (callback: (snapshot: AppDataSnapshot) => void) => {
     if (isTauriRuntime()) {
       return listen<AppDataSnapshot>(appDataUpdatedEvent, (event) => callback(normalizeAppDataSnapshot(event.payload)));

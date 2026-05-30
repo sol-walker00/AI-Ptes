@@ -129,7 +129,7 @@ export function PetWindow() {
   ) {
     if (!profile) return;
     try {
-      await backend.saveAppDataIfCurrent({
+      const snapshot = await backend.saveAppDataIfCurrent({
         profile,
         state: nextState,
         settings,
@@ -138,6 +138,7 @@ export function PetWindow() {
         dailyCare: nextDailyCare,
         journal: nextJournal,
       }, appRevisionRef.current);
+      applyAppDataSnapshot(snapshot);
     } catch (error) {
       if (isAppDataChangedError(error)) {
         await reloadLatestAppData();
@@ -197,7 +198,7 @@ export function PetWindow() {
       setBubble(reply.text);
       setState(reply.nextState);
       setMemory(nextMemory);
-      await backend.saveAppDataIfCurrent({
+      const snapshot = await backend.saveAppDataIfCurrent({
         profile: requestProfile,
         state: reply.nextState,
         settings: requestSettings,
@@ -206,6 +207,7 @@ export function PetWindow() {
         dailyCare: applied.care,
         journal: requestJournal,
       }, requestRevision);
+      applyAppDataSnapshot(snapshot);
     } catch (error) {
       if (isAppDataChangedError(error)) {
         await reloadLatestAppData();

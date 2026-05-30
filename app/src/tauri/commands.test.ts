@@ -153,4 +153,16 @@ describe('backend browser fallback', () => {
 
     unsubscribe();
   });
+
+  it('returns the updated snapshot from preview compare-and-save', async () => {
+    const snapshot = await backend.loadAppDataSnapshot();
+
+    const saved = await backend.saveAppDataIfCurrent({
+      ...snapshot.data,
+      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+    }, snapshot.revision);
+
+    expect(saved.revision).toBe(1);
+    expect(saved.data.profile?.name).toBe('米糕');
+  });
 });
