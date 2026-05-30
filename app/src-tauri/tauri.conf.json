@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "app",
+  "productName": "Desktop AI Pet",
   "version": "0.1.0",
   "identifier": "com.ai-pet.desktop",
   "build": {
@@ -12,9 +12,40 @@
   "app": {
     "windows": [
       {
-        "title": "app",
-        "width": 800,
-        "height": 600
+        "label": "pet",
+        "title": "Desktop AI Pet",
+        "url": "index.html?window=pet",
+        "width": 280,
+        "height": 280,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "resizable": false,
+        "visible": true
+      },
+      {
+        "label": "settings",
+        "title": "Pet Settings",
+        "url": "index.html?window=settings",
+        "width": 520,
+        "height": 680,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "resizable": true,
+        "visible": false
+      },
+      {
+        "label": "chat",
+        "title": "Chat With Pet",
+        "url": "index.html?window=chat",
+        "width": 520,
+        "height": 720,
+        "decorations": true,
+        "transparent": false,
+        "alwaysOnTop": false,
+        "resizable": true,
+        "visible": false
       }
     ],
     "security": {
