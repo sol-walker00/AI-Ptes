@@ -11,6 +11,7 @@ vi.mock('../../tauri/commands', () => ({
       state: { mood: 'calm', hunger: 30, energy: 70, intimacy: 42, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
       settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
       memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [{ id: 'chat-1', kind: 'chat', createdAt: '2026-05-30T00:00:00.000Z', intensity: 0.5, quality: 0.9, note: '写代码' }],
     }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
     saveApiKey: vi.fn().mockResolvedValue('已保存 ****abcd'),
@@ -37,6 +38,7 @@ describe('SettingsWindow', () => {
       profile: expect.objectContaining({ name: '桃桃', createdAt: '2026-05-30T00:00:00.000Z' }),
       state: expect.objectContaining({ intimacy: 42 }),
       memory: expect.objectContaining({ facts: ['用户喜欢安静写代码'] }),
+      events: [expect.objectContaining({ id: 'chat-1', kind: 'chat' })],
     }));
   });
 

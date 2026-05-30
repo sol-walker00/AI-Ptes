@@ -91,4 +91,33 @@ mod tests {
         assert_eq!(loaded.settings.model, "gpt-4.1-mini");
         assert!(dir.path().join("app-data.corrupt.json").exists());
     }
+
+    #[test]
+    fn legacy_app_data_without_events_loads_with_empty_event_log() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store = LocalStore::new_for_tests(dir.path().to_path_buf());
+        fs::create_dir_all(dir.path()).expect("create data dir");
+        fs::write(
+            store.data_file(),
+            r#"{
+              "profile": null,
+              "state": null,
+              "settings": {
+                "baseUrl": "https://api.openai.com/v1",
+                "model": "gpt-4.1-mini",
+                "temperature": 0.7
+              },
+              "memory": {
+                "facts": [],
+                "recentSummary": "",
+                "updatedAt": "2026-05-30T00:00:00.000Z"
+              }
+            }"#,
+        )
+        .expect("write legacy data");
+
+        let loaded = store.load_app_data().expect("load legacy data");
+
+        assert_eq!(loaded.events.len(), 0);
+    }
 }

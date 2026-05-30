@@ -19,6 +19,7 @@ vi.mock('../../tauri/commands', () => ({
       state: { mood: 'calm', hunger: 20, energy: 80, intimacy: 10, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
       settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
       memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
     }),
     sendPetChat: vi.fn().mockResolvedValue({ text: '我会陪着你。' }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
@@ -48,9 +49,12 @@ describe('PetWindow', () => {
     expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
       state: expect.objectContaining({
         energy: 74,
-        intimacy: 12,
+        intimacy: 14,
         lastInteractionAt: expect.stringMatching(/^2026-05-30T00:05:00\.\d{3}Z$/),
       }),
+      events: expect.arrayContaining([
+        expect.objectContaining({ kind: 'chat', note: '陪我写代码' }),
+      ]),
     }));
   });
 

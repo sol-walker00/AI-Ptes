@@ -11,6 +11,8 @@ export type PetAction =
 
 export type PetPersonaId = 'healing' | 'tsundere' | 'studyBuddy' | 'energetic';
 
+export type PetEventKind = 'feed' | 'pet' | 'chat' | 'rest' | 'ignore';
+
 export interface PetPersona {
   id: PetPersonaId;
   label: string;
@@ -25,6 +27,15 @@ export interface PetState {
   intimacy: number;
   action: PetAction;
   lastInteractionAt: string;
+}
+
+export interface PetEvent {
+  id: string;
+  kind: PetEventKind;
+  createdAt: string;
+  intensity: number;
+  quality: number;
+  note?: string;
 }
 
 export interface PetProfile {

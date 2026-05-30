@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createInitialPetState } from '../../domain/petState';
 import { emptyMemory } from '../../domain/memory';
-import type { MemorySummary, ModelSettings, PetPersonaId, PetProfile, PetState } from '../../domain/petTypes';
+import type { MemorySummary, ModelSettings, PetEvent, PetPersonaId, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
 
 const nowIso = () => new Date().toISOString();
@@ -15,6 +15,7 @@ export function SettingsWindow() {
   const [createdAt, setCreatedAt] = useState(initialCreatedAt);
   const [petState, setPetState] = useState<PetState>(() => createInitialPetState(initialCreatedAt));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(initialCreatedAt));
+  const [events, setEvents] = useState<PetEvent[]>([]);
   const [settings, setSettings] = useState<ModelSettings>({
     baseUrl: 'https://api.openai.com/v1',
     model: 'gpt-4.1-mini',
@@ -36,6 +37,7 @@ export function SettingsWindow() {
       }
       if (data.state) setPetState(data.state);
       setMemory(data.memory);
+      setEvents(data.events);
       setSettings(data.settings);
     });
     backend.getApiKeyStatus().then(setKeyStatus);
@@ -60,6 +62,7 @@ export function SettingsWindow() {
         state: petState,
         settings,
         memory,
+        events,
       });
       setMessage('设置已保存');
     } catch (error) {

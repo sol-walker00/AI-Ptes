@@ -29,6 +29,14 @@ function defaultAppData(): AppData {
       temperature: 0.7,
     },
     memory: emptyMemory(createdAt),
+    events: [],
+  };
+}
+
+function normalizeAppData(data: AppData): AppData {
+  return {
+    ...data,
+    events: Array.isArray(data.events) ? data.events : [],
   };
 }
 
@@ -37,7 +45,7 @@ function loadDevAppData() {
   if (!raw) return defaultAppData();
 
   try {
-    return JSON.parse(raw) as AppData;
+    return normalizeAppData(JSON.parse(raw) as AppData);
   } catch {
     localStorage.removeItem(devStorageKey);
     return defaultAppData();

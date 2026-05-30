@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
-import { applyInteraction, createInitialPetState } from '../../domain/petState';
+import { appendPetEvent, applyPetEvent, createInitialPetState, createPetEvent } from '../../domain/petState';
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
-import type { MemorySummary, ModelSettings, PetProfile, PetState } from '../../domain/petTypes';
+import type { MemorySummary, ModelSettings, PetEvent, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
 import type { UiChatMessage } from '../../tauri/commandTypes';
 import { MessageList } from '../components/MessageList';
@@ -14,6 +14,7 @@ export function ChatWindow() {
   const [profile, setProfile] = useState<PetProfile>({ name: '桃桃', species: '桌面小猫', personaId: 'healing', createdAt: nowIso() });
   const [state, setState] = useState<PetState>(() => createInitialPetState(nowIso()));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(nowIso()));
+  const [events, setEvents] = useState<PetEvent[]>([]);
   const [settings, setSettings] = useState<ModelSettings>({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 });
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [text, setText] = useState('');
@@ -24,6 +25,7 @@ export function ChatWindow() {
       if (data.profile) setProfile(data.profile);
       if (data.state) setState(data.state);
       setMemory(data.memory);
+      setEvents(data.events);
       setSettings(data.settings);
     });
   }, []);
@@ -36,8 +38,11 @@ export function ChatWindow() {
     setMessages((current) => [...current, userMessage]);
     setText('');
     setBusy(true);
-    const thinking = applyInteraction(state, 'chat', nowIso());
+    const event = createPetEvent('chat', nowIso(), { userText: trimmed, intensity: 0.5 });
+    const nextEvents = appendPetEvent(events, event);
+    const thinking = applyPetEvent(state, event, events);
     setState(thinking);
+    setEvents(nextEvents);
 
     try {
       const aiMessages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
@@ -53,7 +58,7 @@ export function ChatWindow() {
       setMessages((current) => [...current, petMessage]);
       setState(reply.nextState);
       setMemory(nextMemory);
-      await backend.saveAppData({ profile, state: reply.nextState, settings, memory: nextMemory });
+      await backend.saveAppData({ profile, state: reply.nextState, settings, memory: nextMemory, events: nextEvents });
     } catch (error) {
       const petMessage: UiChatMessage = {
         id: id(),

@@ -22,6 +22,17 @@ pub struct PetState {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
+pub struct PetEvent {
+    pub id: String,
+    pub kind: String,
+    pub created_at: String,
+    pub intensity: f32,
+    pub quality: f32,
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct ModelSettings {
     pub base_url: String,
     pub model: String,
@@ -43,6 +54,8 @@ pub struct AppData {
     pub state: Option<PetState>,
     pub settings: ModelSettings,
     pub memory: MemorySummary,
+    #[serde(default)]
+    pub events: Vec<PetEvent>,
 }
 
 impl Default for AppData {
@@ -60,6 +73,7 @@ impl Default for AppData {
                 recent_summary: String::new(),
                 updated_at: chrono::Utc::now().to_rfc3339(),
             },
+            events: Vec::new(),
         }
     }
 }
