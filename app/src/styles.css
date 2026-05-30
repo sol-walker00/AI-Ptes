@@ -39,7 +39,7 @@ textarea {
 
 .pet-window {
   width: 280px;
-  height: 280px;
+  height: 380px;
   padding: 8px;
   display: grid;
   grid-template-rows: auto 1fr auto auto;
