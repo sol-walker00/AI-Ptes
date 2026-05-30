@@ -54,9 +54,13 @@ export function SiteApp() {
       return;
     }
 
-    const document = createAdoptionDocument({ name, species, personaId, avatar });
-    downloadAdoptionDocument(document);
-    setMessage(`${document.profile.name} 的领养档案已下载。`);
+    try {
+      const document = createAdoptionDocument({ name, species, personaId, avatar });
+      downloadAdoptionDocument(document);
+      setMessage(`${document.profile.name} 的领养档案已下载。`);
+    } catch {
+      setMessage('下载失败，请重试。');
+    }
   }
 
   return (
@@ -179,6 +183,7 @@ function OptionGroup<T extends string>({
       <div className="segmented">
         {options.map((option) => (
           <button
+            aria-label={`${label} ${option.label}`}
             aria-pressed={selected === option.id}
             key={option.id}
             type="button"
