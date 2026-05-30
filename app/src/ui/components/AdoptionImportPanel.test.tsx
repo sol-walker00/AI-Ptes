@@ -51,6 +51,39 @@ describe('AdoptionImportPanel', () => {
     expect(onImport).not.toHaveBeenCalled();
   });
 
+  it('resets the file input after an invalid file so a valid file can be selected', async () => {
+    const user = userEvent.setup();
+    const onImport = vi.fn().mockResolvedValue(undefined);
+    render(<AdoptionImportPanel onImport={onImport} onCreateLocally={vi.fn()} />);
+
+    const fileInput = screen.getByLabelText('选择领养档案');
+    await user.upload(fileInput, new File(['{not json'], 'broken.pet'));
+
+    expect(await screen.findByText('这个领养档案无法读取')).toBeInTheDocument();
+    expect(fileInput).toHaveValue('');
+
+    await user.upload(fileInput, validPetFile);
+
+    expect(await screen.findByText('桃桃 已准备回家。')).toBeInTheDocument();
+    expect(onImport).toHaveBeenCalledTimes(1);
+  });
+
+  it('communicates busy state while importing', async () => {
+    const user = userEvent.setup();
+    let finishImport: () => void = () => {};
+    const onImport = vi.fn(() => new Promise<void>((resolve) => {
+      finishImport = resolve;
+    }));
+    render(<AdoptionImportPanel onImport={onImport} onCreateLocally={vi.fn()} />);
+
+    await user.upload(screen.getByLabelText('选择领养档案'), validPetFile);
+
+    expect(screen.getByText('导入中...').closest('label')).toHaveAttribute('aria-disabled', 'true');
+
+    finishImport();
+    expect(await screen.findByText('桃桃 已准备回家。')).toBeInTheDocument();
+  });
+
   it('lets the user continue with local creation', async () => {
     const user = userEvent.setup();
     const onCreateLocally = vi.fn();

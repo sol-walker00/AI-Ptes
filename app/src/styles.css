@@ -431,8 +431,8 @@ textarea {
   gap: 10px;
 }
 
-.file-button,
-.icon-text-button,
+.adoption-import-file-button,
+.adoption-import-local-button,
 .adoption-import-hint {
   display: inline-flex;
   align-items: center;
@@ -440,7 +440,12 @@ textarea {
   gap: 8px;
 }
 
-.file-button input {
+.adoption-import-file-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.adoption-import-file-button input {
   position: absolute;
   width: 1px;
   height: 1px;

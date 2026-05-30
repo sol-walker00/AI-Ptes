@@ -37,9 +37,9 @@ export function AdoptionImportPanel({ onImport, onCreateLocally }: AdoptionImpor
         <p>选择从领养站下载的 adoption.pet，或者直接在本机创建一只新宠物。</p>
       </div>
       <div className="adoption-import-actions">
-        <label className="primary-button file-button">
+        <label className="primary-button adoption-import-file-button" aria-disabled={busy}>
           <FileInput size={18} />
-          导入领养档案
+          {busy ? '导入中...' : '导入领养档案'}
           <input
             ref={inputRef}
             aria-label="选择领养档案"
@@ -49,7 +49,7 @@ export function AdoptionImportPanel({ onImport, onCreateLocally }: AdoptionImpor
             onChange={(event) => void importFile(event.currentTarget.files?.[0])}
           />
         </label>
-        <button className="secondary-button icon-text-button" type="button" onClick={onCreateLocally}>
+        <button className="secondary-button adoption-import-local-button" type="button" onClick={onCreateLocally}>
           <PenLine size={18} />
           本地创建新宠物
         </button>
