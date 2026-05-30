@@ -38,21 +38,18 @@ cargo test
 
 ## GitHub Deployment
 
-1. Create an empty GitHub repository.
-2. Add the repository as `origin`:
+If you already have an empty GitHub repository, publish with its remote URL:
 
 ```bash
-git remote add origin git@github.com:YOUR_NAME/YOUR_REPO.git
-git push -u origin main
+scripts/publish-github.sh git@github.com:YOUR_NAME/YOUR_REPO.git
 ```
 
-3. In GitHub, open **Settings > Pages** and set **Build and deployment > Source** to **GitHub Actions**.
-4. The `adoption site pages` workflow deploys `site/` to GitHub Pages on every `main` push.
-5. To build and publish desktop client downloads, push a release tag:
+If this machine has authenticated GitHub CLI (`gh`) or `GH_TOKEN` / `GITHUB_TOKEN` / `GITHUB_PAT` with repository creation permission, the script can create the public repository first:
 
 ```bash
-git tag desktop-ai-pet-v0.1.0
-git push origin desktop-ai-pet-v0.1.0
+scripts/publish-github.sh --create --repo-name desktop-ai-pet-adoption
 ```
 
-The `desktop release` workflow builds macOS and Windows zip files and uploads them to a draft GitHub Release.
+The script adds `origin` when needed, pushes `main`, creates `desktop-ai-pet-v0.1.0` if it does not exist, and pushes that tag.
+
+After the first push, open **Settings > Pages** in GitHub and set **Build and deployment > Source** to **GitHub Actions**. The `adoption site pages` workflow deploys `site/` to GitHub Pages on every `main` push. The `desktop release` workflow builds macOS and Windows zip files and uploads them to a draft GitHub Release when the release tag is pushed.
