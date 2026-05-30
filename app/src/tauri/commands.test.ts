@@ -114,4 +114,43 @@ describe('backend browser fallback', () => {
 
     unsubscribe();
   });
+
+  it('tracks preview app data snapshot revisions', async () => {
+    const snapshot = await backend.loadAppDataSnapshot();
+
+    expect(snapshot.revision).toBe(0);
+    expect(snapshot.data.profile?.name).toBe('桃桃');
+
+    const saved = await backend.saveAppData({
+      ...snapshot.data,
+      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+    });
+    const nextSnapshot = await backend.loadAppDataSnapshot();
+
+    expect(saved.profile?.name).toBe('米糕');
+    expect(nextSnapshot.revision).toBe(1);
+    expect(nextSnapshot.data.profile?.name).toBe('米糕');
+  });
+
+  it('rejects stale preview compare-and-save without notifying or overwriting', async () => {
+    const updates = [];
+    const unsubscribe = await backend.subscribeAppDataSnapshotUpdates((snapshot) => updates.push(snapshot));
+    const snapshot = await backend.loadAppDataSnapshot();
+    await backend.saveAppData({
+      ...snapshot.data,
+      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+    });
+
+    await expect(backend.saveAppDataIfCurrent({
+      ...snapshot.data,
+      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '旧桃桃' } : null,
+    }, snapshot.revision)).rejects.toThrow('app data changed');
+
+    const latest = await backend.loadAppDataSnapshot();
+    expect(latest.revision).toBe(1);
+    expect(latest.data.profile?.name).toBe('米糕');
+    expect(updates).toHaveLength(1);
+
+    unsubscribe();
+  });
 });

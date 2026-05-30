@@ -13,7 +13,7 @@ pub fn run() {
     let should_show_settings = backend_state
         .cache
         .lock()
-        .map(|data| data.profile.is_none())
+        .map(|cached| cached.data.profile.is_none())
         .unwrap_or(false);
 
     tauri::Builder::default()
@@ -28,7 +28,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::load_app_data,
+            commands::load_app_data_snapshot,
             commands::save_app_data,
+            commands::save_app_data_if_current,
             commands::save_api_key,
             commands::clear_api_key,
             commands::get_api_key_status,

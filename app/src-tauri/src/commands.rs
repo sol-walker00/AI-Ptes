@@ -1,3 +1,4 @@
+use serde::Serialize;
 use tauri::{Emitter, State};
 
 use crate::{
@@ -7,10 +8,26 @@ use crate::{
     secret::{SecretError, SecretStore},
 };
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppDataSnapshot {
+    pub data: AppData,
+    pub revision: u64,
+}
+
 #[tauri::command]
 pub fn load_app_data(state: State<'_, BackendState>) -> Result<AppData, String> {
     let cache = state.cache.lock().map_err(|_| "state lock failed".to_string())?;
-    Ok(cache.clone())
+    Ok(cache.data.clone())
+}
+
+#[tauri::command]
+pub fn load_app_data_snapshot(state: State<'_, BackendState>) -> Result<AppDataSnapshot, String> {
+    let cache = state.cache.lock().map_err(|_| "state lock failed".to_string())?;
+    Ok(AppDataSnapshot {
+        data: cache.data.clone(),
+        revision: cache.revision,
+    })
 }
 
 #[tauri::command]
@@ -19,17 +36,52 @@ pub fn save_app_data(
     state: State<'_, BackendState>,
     app: tauri::AppHandle,
 ) -> Result<AppData, String> {
-    state
-        .store
-        .save_app_data(&data)
-        .map_err(|error| error.to_string())?;
-
-    {
+    let snapshot = {
         let mut cache = state.cache.lock().map_err(|_| "state lock failed".to_string())?;
-        *cache = data.clone();
+        state
+            .store
+            .save_app_data(&data)
+            .map_err(|error| error.to_string())?;
+        cache.data = data.clone();
+        cache.revision += 1;
+        AppDataSnapshot {
+            data: cache.data.clone(),
+            revision: cache.revision,
+        }
+    };
+
+    if let Err(error) = app.emit("app-data-updated", snapshot) {
+        eprintln!("failed to emit app-data-updated: {error}");
     }
 
-    if let Err(error) = app.emit("app-data-updated", data.clone()) {
+    Ok(data)
+}
+
+#[tauri::command]
+pub fn save_app_data_if_current(
+    data: AppData,
+    expected_revision: u64,
+    state: State<'_, BackendState>,
+    app: tauri::AppHandle,
+) -> Result<AppData, String> {
+    let snapshot = {
+        let mut cache = state.cache.lock().map_err(|_| "state lock failed".to_string())?;
+        if cache.revision != expected_revision {
+            return Err("app data changed".to_string());
+        }
+        state
+            .store
+            .save_app_data(&data)
+            .map_err(|error| error.to_string())?;
+        cache.data = data.clone();
+        cache.revision += 1;
+        AppDataSnapshot {
+            data: cache.data.clone(),
+            revision: cache.revision,
+        }
+    };
+
+    if let Err(error) = app.emit("app-data-updated", snapshot) {
         eprintln!("failed to emit app-data-updated: {error}");
     }
 

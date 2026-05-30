@@ -23,7 +23,7 @@ import {
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
 import type { DailyCare, MemorySummary, ModelSettings, PetEvent, PetJournalEntry, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
-import type { AppData } from '../../tauri/commandTypes';
+import type { AppData, AppDataSnapshot } from '../../tauri/commandTypes';
 import { ActionButton } from '../components/ActionButton';
 import { PetSprite } from '../components/PetSprite';
 import { StatusBars } from '../components/StatusBars';
@@ -47,7 +47,13 @@ export function PetWindow() {
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const dataVersionRef = useRef(0);
+  const appRevisionRef = useRef(0);
   const profileRef = useRef<PetProfile | null>(null);
+
+  function applyAppDataSnapshot(snapshot: AppDataSnapshot) {
+    appRevisionRef.current = snapshot.revision;
+    applyAppData(snapshot.data);
+  }
 
   function applyAppData(data: AppData) {
     dataVersionRef.current += 1;
@@ -72,14 +78,18 @@ export function PetWindow() {
     setSettings(data.settings);
   }
 
+  async function reloadLatestAppData() {
+    applyAppDataSnapshot(await backend.loadAppDataSnapshot());
+  }
+
   useEffect(() => {
     let disposed = false;
     let unsubscribe: (() => void) | undefined;
 
     async function loadAfterSubscriptionReady() {
       try {
-        const unlisten = await backend.subscribeAppDataUpdates((data) => {
-          if (!disposed) applyAppData(data);
+        const unlisten = await backend.subscribeAppDataSnapshotUpdates((snapshot) => {
+          if (!disposed) applyAppDataSnapshot(snapshot);
         });
         if (disposed) {
           unlisten();
@@ -88,16 +98,16 @@ export function PetWindow() {
         unsubscribe = unlisten;
 
         const initialVersion = dataVersionRef.current;
-        const data = await backend.loadAppData();
+        const snapshot = await backend.loadAppDataSnapshot();
         if (!disposed && dataVersionRef.current === initialVersion) {
-          applyAppData(data);
+          applyAppDataSnapshot(snapshot);
         }
       } catch {
         if (disposed) return;
         const initialVersion = dataVersionRef.current;
-        const data = await backend.loadAppData();
+        const snapshot = await backend.loadAppDataSnapshot();
         if (!disposed && dataVersionRef.current === initialVersion) {
-          applyAppData(data);
+          applyAppDataSnapshot(snapshot);
         }
       }
     }
@@ -118,15 +128,23 @@ export function PetWindow() {
     nextJournal = journal,
   ) {
     if (!profile) return;
-    await backend.saveAppData({
-      profile,
-      state: nextState,
-      settings,
-      memory: nextMemory,
-      events: nextEvents,
-      dailyCare: nextDailyCare,
-      journal: nextJournal,
-    });
+    try {
+      await backend.saveAppDataIfCurrent({
+        profile,
+        state: nextState,
+        settings,
+        memory: nextMemory,
+        events: nextEvents,
+        dailyCare: nextDailyCare,
+        journal: nextJournal,
+      }, appRevisionRef.current);
+    } catch (error) {
+      if (isAppDataChangedError(error)) {
+        await reloadLatestAppData();
+      } else {
+        throw error;
+      }
+    }
   }
 
   function applyDailyProgress(kind: PetEvent['kind'], nextState: PetState, at: string, care = dailyCare) {
@@ -148,6 +166,7 @@ export function PetWindow() {
     if (!trimmed || busy) return;
 
     const requestVersion = dataVersionRef.current;
+    const requestRevision = appRevisionRef.current;
     const requestProfile = profile;
     const requestState = state;
     const requestMemory = memory;
@@ -178,7 +197,7 @@ export function PetWindow() {
       setBubble(reply.text);
       setState(reply.nextState);
       setMemory(nextMemory);
-      await backend.saveAppData({
+      await backend.saveAppDataIfCurrent({
         profile: requestProfile,
         state: reply.nextState,
         settings: requestSettings,
@@ -186,8 +205,12 @@ export function PetWindow() {
         events: nextEvents,
         dailyCare: applied.care,
         journal: requestJournal,
-      });
+      }, requestRevision);
     } catch (error) {
+      if (isAppDataChangedError(error)) {
+        await reloadLatestAppData();
+        return;
+      }
       if (dataVersionRef.current !== requestVersion || profileRef.current !== requestProfile) return;
       const message = String(error);
       setBubble(message.toLowerCase().includes('api key') ? '我还没有接上大脑，先去设置 API key 吧。' : '我有点晕乎，等会儿再试试。');
@@ -274,6 +297,10 @@ export function PetWindow() {
       </div>
     </main>
   );
+}
+
+function isAppDataChangedError(error: unknown) {
+  return String(error).includes('app data changed');
 }
 
 function actionText(kind: 'feed' | 'pet' | 'rest' | 'clean' | 'focus' | 'reflect') {

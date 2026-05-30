@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultPetAvatar } from '../../domain/petAvatar';
 import { PetWindow } from './PetWindow';
 import { backend } from '../../tauri/commands';
-import type { AppData } from '../../tauri/commandTypes';
+import type { AppData, AppDataSnapshot } from '../../tauri/commandTypes';
 
 const startDragging = vi.fn().mockResolvedValue(undefined);
-let appDataUpdateCallback: ((data: AppData) => void) | null = null;
+let appDataSnapshotUpdateCallback: ((snapshot: AppDataSnapshot) => void) | null = null;
 
 function appData(overrides: Partial<AppData> = {}): AppData {
   return {
@@ -55,6 +55,10 @@ function adoptedAppData(name = '米糕'): AppData {
   });
 }
 
+function snapshot(data = appData(), revision = 0): AppDataSnapshot {
+  return { data, revision };
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -74,12 +78,15 @@ vi.mock('@tauri-apps/api/window', () => ({
 vi.mock('../../tauri/commands', () => ({
   backend: {
     loadAppData: vi.fn().mockResolvedValue(appData()),
+    loadAppDataSnapshot: vi.fn().mockResolvedValue(snapshot()),
     sendPetChat: vi.fn().mockResolvedValue({ text: '我会陪着你。' }),
     saveAppData: vi.fn().mockImplementation((data) => Promise.resolve(data)),
-    subscribeAppDataUpdates: vi.fn((callback) => {
-      appDataUpdateCallback = callback;
+    saveAppDataIfCurrent: vi.fn().mockImplementation((data) => Promise.resolve(data)),
+    subscribeAppDataUpdates: vi.fn(() => Promise.resolve(() => undefined)),
+    subscribeAppDataSnapshotUpdates: vi.fn((callback) => {
+      appDataSnapshotUpdateCallback = callback;
       return Promise.resolve(() => {
-        if (appDataUpdateCallback === callback) appDataUpdateCallback = null;
+        if (appDataSnapshotUpdateCallback === callback) appDataSnapshotUpdateCallback = null;
       });
     }),
   },
@@ -89,7 +96,7 @@ describe('PetWindow', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-05-30T00:05:00.000Z'));
-    appDataUpdateCallback = null;
+    appDataSnapshotUpdateCallback = null;
   });
 
   afterEach(() => {
@@ -106,7 +113,7 @@ describe('PetWindow', () => {
     await user.click(screen.getByRole('button', { name: '发送' }));
 
     expect(await screen.findByText('我会陪着你。')).toBeInTheDocument();
-    expect(backend.saveAppData).toHaveBeenCalledWith(expect.objectContaining({
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledWith(expect.objectContaining({
       state: expect.objectContaining({
         energy: 74,
         intimacy: 14,
@@ -115,11 +122,11 @@ describe('PetWindow', () => {
       events: expect.arrayContaining([
         expect.objectContaining({ kind: 'chat', note: '陪我写代码' }),
       ]),
-    }));
+    }), 0);
   });
 
   it('renders the saved custom avatar in the desktop pet body', async () => {
-    vi.mocked(backend.loadAppData).mockResolvedValueOnce({
+    vi.mocked(backend.loadAppDataSnapshot).mockResolvedValueOnce(snapshot({
       ...appData(),
       profile: {
         name: '桃桃',
@@ -133,7 +140,7 @@ describe('PetWindow', () => {
           accessory: 'headphones',
         },
       },
-    });
+    }));
     render(<PetWindow />);
 
     const avatar = await screen.findByLabelText('custom pet avatar');
@@ -144,7 +151,7 @@ describe('PetWindow', () => {
   });
 
   it('does not show a fake default pet before adoption', async () => {
-    vi.mocked(backend.loadAppData).mockResolvedValueOnce(appData({ profile: null, state: null }));
+    vi.mocked(backend.loadAppDataSnapshot).mockResolvedValueOnce(snapshot(appData({ profile: null, state: null })));
 
     render(<PetWindow />);
 
@@ -153,13 +160,13 @@ describe('PetWindow', () => {
   });
 
   it('refreshes from empty state when app data is updated after adoption import', async () => {
-    vi.mocked(backend.loadAppData).mockResolvedValueOnce(appData({ profile: null, state: null }));
+    vi.mocked(backend.loadAppDataSnapshot).mockResolvedValueOnce(snapshot(appData({ profile: null, state: null })));
     render(<PetWindow />);
 
     expect(await screen.findByText('还没有宠物住进来。')).toBeInTheDocument();
 
     act(() => {
-      appDataUpdateCallback?.(adoptedAppData());
+      appDataSnapshotUpdateCallback?.(snapshot(adoptedAppData(), 1));
     });
 
     const avatar = await screen.findByLabelText('custom pet avatar');
@@ -170,19 +177,19 @@ describe('PetWindow', () => {
   });
 
   it('keeps the adopted pet when a slower initial load resolves after an app data update', async () => {
-    const initialLoad = deferred<AppData>();
-    vi.mocked(backend.loadAppData).mockReturnValueOnce(initialLoad.promise);
+    const initialSnapshot = deferred<AppDataSnapshot>();
+    vi.mocked(backend.loadAppDataSnapshot).mockReturnValueOnce(initialSnapshot.promise);
     render(<PetWindow />);
 
-    await waitFor(() => expect(appDataUpdateCallback).not.toBeNull());
+    await waitFor(() => expect(appDataSnapshotUpdateCallback).not.toBeNull());
     act(() => {
-      appDataUpdateCallback?.(adoptedAppData());
+      appDataSnapshotUpdateCallback?.(snapshot(adoptedAppData(), 1));
     });
     expect(await screen.findByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
 
     await act(async () => {
-      initialLoad.resolve(appData({ profile: null, state: null }));
-      await initialLoad.promise;
+      initialSnapshot.resolve(snapshot(appData({ profile: null, state: null }), 0));
+      await initialSnapshot.promise;
     });
 
     expect(await screen.findByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
@@ -200,7 +207,7 @@ describe('PetWindow', () => {
     await user.click(screen.getByRole('button', { name: '发送' }));
 
     act(() => {
-      appDataUpdateCallback?.(adoptedAppData());
+      appDataSnapshotUpdateCallback?.(snapshot(adoptedAppData(), 1));
     });
     expect(await screen.findByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
 
@@ -210,8 +217,27 @@ describe('PetWindow', () => {
     });
 
     expect(await screen.findByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
-    expect(backend.saveAppData).not.toHaveBeenCalled();
+    expect(backend.saveAppDataIfCurrent).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: '拖动或点击桃桃' })).not.toBeInTheDocument();
+  });
+
+  it('reloads latest data when quick chat compare-save loses the backend revision race', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(backend.loadAppDataSnapshot)
+      .mockResolvedValueOnce(snapshot(appData(), 0))
+      .mockResolvedValueOnce(snapshot(adoptedAppData(), 1));
+    vi.mocked(backend.saveAppDataIfCurrent).mockRejectedValueOnce(new Error('app data changed'));
+    render(<PetWindow />);
+
+    await user.click(await screen.findByRole('button', { name: '快速对话' }));
+    await user.type(screen.getByLabelText('和桃桃说话'), '陪我写代码');
+    await user.click(screen.getByRole('button', { name: '发送' }));
+
+    expect(await screen.findByRole('button', { name: '拖动或点击米糕' })).toBeInTheDocument();
+    expect(backend.saveAppDataIfCurrent).toHaveBeenCalledWith(expect.objectContaining({
+      profile: expect.objectContaining({ name: '桃桃' }),
+    }), 0);
+    expect(screen.queryByText('我还没有接上大脑，先去设置 API key 吧。')).not.toBeInTheDocument();
   });
 
   it('starts dragging from the pet body and passive panels', async () => {

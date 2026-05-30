@@ -20,6 +20,11 @@ export interface AppData {
   journal?: PetJournalEntry[] | null;
 }
 
+export interface AppDataSnapshot {
+  data: AppData;
+  revision: number;
+}
+
 export interface SendPetChatRequest {
   providerId: string;
   protocol: string;
