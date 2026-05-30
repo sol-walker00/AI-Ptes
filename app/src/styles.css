@@ -400,3 +400,59 @@ textarea {
   from { transform: translateY(0); }
   to { transform: translateY(-6px); }
 }
+
+.adoption-import-panel {
+  min-height: calc(100vh - 48px);
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.adoption-import-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.adoption-import-copy h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.adoption-import-copy p {
+  margin: 0;
+  color: #4d5a52;
+  line-height: 1.5;
+}
+
+.adoption-import-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.file-button,
+.icon-text-button,
+.adoption-import-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.file-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.adoption-import-hint {
+  min-height: 36px;
+  margin: 0;
+  color: #2f6f5e;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
