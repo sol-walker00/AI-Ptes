@@ -1,8 +1,18 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsWindow } from './SettingsWindow';
 import { backend } from '../../tauri/commands';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
 
 vi.mock('../../tauri/commands', () => ({
   backend: {
@@ -144,6 +154,28 @@ describe('SettingsWindow', () => {
     await user.click(screen.getByRole('button', { name: '高级设置' }));
     expect(screen.getByLabelText('Base URL')).toHaveValue('https://api.anthropic.com/v1');
     expect(screen.getByLabelText('协议')).toHaveValue('anthropic-messages');
+  });
+
+  it('does not show stale key status after switching providers quickly', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const deepseekStatus = deferred<string | null>();
+    const anthropicStatus = deferred<string | null>();
+    vi.mocked(backend.getApiKeyStatus)
+      .mockReturnValueOnce(deepseekStatus.promise)
+      .mockReturnValueOnce(anthropicStatus.promise);
+    render(<SettingsWindow />);
+
+    await user.selectOptions(await screen.findByLabelText('供应商'), 'anthropic');
+    await act(async () => {
+      anthropicStatus.resolve(null);
+      await anthropicStatus.promise;
+    });
+    await act(async () => {
+      deepseekStatus.resolve('已保存 ****deep');
+      await deepseekStatus.promise;
+    });
+
+    expect(screen.queryByText('Claude / Anthropic：已保存 ****deep')).not.toBeInTheDocument();
   });
 
   it('saves dress-up avatar selections with the pet profile', async () => {

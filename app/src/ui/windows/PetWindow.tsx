@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { BookOpen, Heart, MessageCircle, Moon, Sparkles, Target, Utensils } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { normalizePetAvatar } from '../../domain/petAvatar';
@@ -46,12 +46,18 @@ export function PetWindow() {
   const [inputOpen, setInputOpen] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const dataVersionRef = useRef(0);
+  const profileRef = useRef<PetProfile | null>(null);
 
   function applyAppData(data: AppData) {
+    dataVersionRef.current += 1;
     const loadedAt = nowIso();
     if (data.profile) {
-      setProfile({ ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) });
+      const nextProfile = { ...data.profile, avatar: normalizePetAvatar(data.profile.avatar) };
+      profileRef.current = nextProfile;
+      setProfile(nextProfile);
     } else {
+      profileRef.current = null;
       setProfile(null);
     }
     if (data.state) {
@@ -70,18 +76,33 @@ export function PetWindow() {
     let disposed = false;
     let unsubscribe: (() => void) | undefined;
 
-    backend.loadAppData().then((data) => {
-      if (!disposed) applyAppData(data);
-    });
-    void backend.subscribeAppDataUpdates((data) => {
-      if (!disposed) applyAppData(data);
-    }).then((unlisten) => {
-      if (disposed) {
-        unlisten();
-      } else {
+    async function loadAfterSubscriptionReady() {
+      try {
+        const unlisten = await backend.subscribeAppDataUpdates((data) => {
+          if (!disposed) applyAppData(data);
+        });
+        if (disposed) {
+          unlisten();
+          return;
+        }
         unsubscribe = unlisten;
+
+        const initialVersion = dataVersionRef.current;
+        const data = await backend.loadAppData();
+        if (!disposed && dataVersionRef.current === initialVersion) {
+          applyAppData(data);
+        }
+      } catch {
+        if (disposed) return;
+        const initialVersion = dataVersionRef.current;
+        const data = await backend.loadAppData();
+        if (!disposed && dataVersionRef.current === initialVersion) {
+          applyAppData(data);
+        }
       }
-    });
+    }
+
+    void loadAfterSubscriptionReady();
 
     return () => {
       disposed = true;
@@ -108,9 +129,9 @@ export function PetWindow() {
     });
   }
 
-  function applyDailyProgress(kind: PetEvent['kind'], nextState: PetState, at: string) {
+  function applyDailyProgress(kind: PetEvent['kind'], nextState: PetState, at: string, care = dailyCare) {
     const taskKind = taskForEventKind(kind);
-    const activeCare = ensureDailyCare(dailyCare, at);
+    const activeCare = ensureDailyCare(care, at);
     if (!taskKind) return { state: nextState, care: activeCare };
 
     const reward = taskRewardFor(activeCare, taskKind);
@@ -126,10 +147,19 @@ export function PetWindow() {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
 
+    const requestVersion = dataVersionRef.current;
+    const requestProfile = profile;
+    const requestState = state;
+    const requestMemory = memory;
+    const requestEvents = events;
+    const requestDailyCare = dailyCare;
+    const requestJournal = journal;
+    const requestSettings = settings;
+
     setBusy(true);
     const event = createPetEvent('chat', nowIso(), { userText: trimmed, intensity: 0.5 });
-    const nextEvents = appendPetEvent(events, event);
-    const applied = applyDailyProgress('chat', applyPetEvent(state, event, events), event.createdAt);
+    const nextEvents = appendPetEvent(requestEvents, event);
+    const applied = applyDailyProgress('chat', applyPetEvent(requestState, event, requestEvents), event.createdAt, requestDailyCare);
     const thinking = applied.state;
     setState(thinking);
     setEvents(nextEvents);
@@ -137,18 +167,28 @@ export function PetWindow() {
     setBubble('我在想一想...');
 
     try {
-      const messages = buildPetMessages({ profile, state: thinking, memory, userText: trimmed });
+      const messages = buildPetMessages({ profile: requestProfile, state: thinking, memory: requestMemory, userText: trimmed });
       const response = await backend.sendPetChat({
-        ...settings,
+        ...requestSettings,
         messages,
       });
+      if (dataVersionRef.current !== requestVersion || profileRef.current !== requestProfile) return;
       const reply = mapAssistantTextToReply(response.text, thinking);
-      const nextMemory = updateMemorySummary(memory, `用户说：${trimmed} 宠物回应：${reply.text}`, nowIso());
+      const nextMemory = updateMemorySummary(requestMemory, `用户说：${trimmed} 宠物回应：${reply.text}`, nowIso());
       setBubble(reply.text);
       setState(reply.nextState);
       setMemory(nextMemory);
-      await persist(reply.nextState, nextMemory, nextEvents, applied.care);
+      await backend.saveAppData({
+        profile: requestProfile,
+        state: reply.nextState,
+        settings: requestSettings,
+        memory: nextMemory,
+        events: nextEvents,
+        dailyCare: applied.care,
+        journal: requestJournal,
+      });
     } catch (error) {
+      if (dataVersionRef.current !== requestVersion || profileRef.current !== requestProfile) return;
       const message = String(error);
       setBubble(message.toLowerCase().includes('api key') ? '我还没有接上大脑，先去设置 API key 吧。' : '我有点晕乎，等会儿再试试。');
       setState({ ...thinking, action: 'confused', mood: 'confused' });

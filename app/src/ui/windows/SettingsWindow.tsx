@@ -76,7 +76,14 @@ export function SettingsWindow() {
   }, []);
 
   useEffect(() => {
-    backend.getApiKeyStatus(settings.providerId).then(setKeyStatus);
+    let cancelled = false;
+    setKeyStatus(null);
+    backend.getApiKeyStatus(settings.providerId).then((status) => {
+      if (!cancelled) setKeyStatus(status);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [settings.providerId]);
 
   function changeProvider(providerId: string) {
