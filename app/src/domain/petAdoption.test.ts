@@ -87,6 +87,48 @@ describe('pet adoption documents', () => {
     }))).toThrow('领养档案不完整，请重新下载');
   });
 
+  it('rejects invalid calendar dates', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      createdAt: '2026-02-31T12:00:00.000Z',
+    }))).toThrow('领养档案不完整，请重新下载');
+  });
+
+  it('rejects non-ISO-ish dates', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      createdAt: '123',
+    }))).toThrow('领养档案不完整，请重新下载');
+  });
+
+  it('rejects missing or empty adoption ids', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      adoptionId: '',
+    }))).toThrow('领养档案不完整，请重新下载');
+
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      adoptionId: undefined,
+    }))).toThrow('领养档案不完整，请重新下载');
+  });
+
+  it('rejects missing or empty species', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      profile: { ...validDocument.profile, species: '   ' },
+    }))).toThrow('领养档案不完整，请重新下载');
+
+    expect(() => parsePetAdoptionText(JSON.stringify({
+      ...validDocument,
+      profile: { ...validDocument.profile, species: undefined },
+    }))).toThrow('领养档案不完整，请重新下载');
+  });
+
+  it('rejects non-object JSON roots', () => {
+    expect(() => parsePetAdoptionText(JSON.stringify([]))).toThrow('这个领养档案无法读取');
+  });
+
   it('rejects unsupported personas', () => {
     expect(() => parsePetAdoptionText(JSON.stringify({
       ...validDocument,

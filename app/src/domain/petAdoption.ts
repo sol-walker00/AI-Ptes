@@ -37,6 +37,7 @@ export interface AdoptedAppData {
 }
 
 type UnknownRecord = Record<string, unknown>;
+const isoUtcTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 export function parsePetAdoptionText(rawText: string): PetAdoptionDocument {
   let parsed: unknown;
@@ -109,7 +110,8 @@ function requireText(value: unknown): string {
 
 function requireIsoDate(value: unknown): string {
   const text = requireText(value);
-  if (Number.isNaN(Date.parse(text))) {
+  const date = new Date(text);
+  if (!isoUtcTimestampPattern.test(text) || Number.isNaN(date.getTime()) || date.toISOString() !== text) {
     throw new Error('领养档案不完整，请重新下载');
   }
   return text;
