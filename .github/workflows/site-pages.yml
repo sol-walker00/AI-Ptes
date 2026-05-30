@@ -31,13 +31,19 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            site/package-lock.json
+            app/package-lock.json
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Install dependencies
+      - name: Install site dependencies
         working-directory: site
+        run: npm ci
+
+      - name: Install app dependencies for shared components
+        working-directory: app
         run: npm ci
 
       - name: Build adoption site
