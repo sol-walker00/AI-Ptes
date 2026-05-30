@@ -27,3 +27,17 @@ npm run build
 - `public/downloads/Desktop-AI-Pet-0.1.0-macos-aarch64.zip`
 
 当 macOS 或 Windows 下载地址为空时，页面会显示禁用下载按钮和“客户端安装包即将开放”。
+
+发布构建可以通过环境变量让两个按钮都指向同一个下载目录：
+
+```bash
+VITE_DESKTOP_DOWNLOAD_BASE_URL=/downloads npm run build
+```
+
+`.github/workflows/desktop-release.yml` 会在 GitHub Actions 里生成：
+
+- `Desktop-AI-Pet-0.1.0-macos-aarch64.zip`
+- `Desktop-AI-Pet-0.1.0-windows-x64.zip`
+- 内含两个下载包的 `pet-adoption-site` 静态站点 artifact
+
+在推送 `desktop-ai-pet-v*` 标签时，工作流还会把两个桌面客户端下载包上传到同名 GitHub Release。
