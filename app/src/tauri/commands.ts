@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type { AppData, AppDataSnapshot, SendPetChatRequest, SendPetChatResponse } from './commandTypes';
-import { defaultPetAvatar, normalizePetAvatar } from '../domain/petAvatar';
+import { normalizePetAvatar } from '../domain/petAvatar';
 import { emptyMemory } from '../domain/memory';
 import { defaultModelSettings, migrateBuiltInModelSettings } from '../domain/modelSettings';
 import { ensureDailyCare } from '../domain/petLifecycle';
-import { createInitialPetState, normalizePetState } from '../domain/petState';
+import { normalizePetState } from '../domain/petState';
 
 const devStorageKey = 'ai-pet-dev-app-data';
 const appDataUpdatedEvent = 'app-data-updated';
@@ -22,14 +22,8 @@ function nowIso() {
 function defaultAppData(): AppData {
   const createdAt = nowIso();
   return {
-    profile: {
-      name: '桃桃',
-      species: '桌面小猫',
-      personaId: 'healing',
-      createdAt,
-      avatar: defaultPetAvatar(),
-    },
-    state: createInitialPetState(createdAt),
+    profile: null,
+    state: null,
     settings: { ...defaultModelSettings },
     memory: emptyMemory(createdAt),
     events: [],

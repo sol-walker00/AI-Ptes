@@ -11,8 +11,8 @@ describe('backend browser fallback', () => {
 
     const data = await backend.loadAppData();
 
-    expect(data.profile?.name).toBe('桃桃');
-    expect(data.state?.mood).toBe('calm');
+    expect(data.profile).toBeNull();
+    expect(data.state).toBeNull();
     expect(data.settings.providerId).toBe('deepseek');
     expect(data.settings.protocol).toBe('openai-chat');
     expect(data.settings.auth).toBe('bearer');
@@ -119,11 +119,25 @@ describe('backend browser fallback', () => {
     const snapshot = await backend.loadAppDataSnapshot();
 
     expect(snapshot.revision).toBe(0);
-    expect(snapshot.data.profile?.name).toBe('桃桃');
+    expect(snapshot.data.profile).toBeNull();
 
     const saved = await backend.saveAppData({
       ...snapshot.data,
-      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+      profile: {
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: {
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          secondaryColor: '#e4f5ff',
+          eyeStyle: 'sparkle',
+          mouthStyle: 'smile',
+          cheekStyle: 'peach',
+          accessory: 'headphones',
+        },
+      },
     });
     const nextSnapshot = await backend.loadAppDataSnapshot();
 
@@ -138,12 +152,40 @@ describe('backend browser fallback', () => {
     const snapshot = await backend.loadAppDataSnapshot();
     await backend.saveAppData({
       ...snapshot.data,
-      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+      profile: {
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: {
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          secondaryColor: '#e4f5ff',
+          eyeStyle: 'sparkle',
+          mouthStyle: 'smile',
+          cheekStyle: 'peach',
+          accessory: 'headphones',
+        },
+      },
     });
 
     await expect(backend.saveAppDataIfCurrent({
       ...snapshot.data,
-      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '旧桃桃' } : null,
+      profile: {
+        name: '旧桃桃',
+        species: '桌面小猫',
+        personaId: 'healing',
+        createdAt: '2026-05-30T00:00:00.000Z',
+        avatar: {
+          body: 'cat',
+          primaryColor: '#f6c65b',
+          secondaryColor: '#fff1bf',
+          eyeStyle: 'round',
+          mouthStyle: 'smile',
+          cheekStyle: 'pink',
+          accessory: 'none',
+        },
+      },
     }, snapshot.revision)).rejects.toThrow('app data changed');
 
     const latest = await backend.loadAppDataSnapshot();
@@ -159,7 +201,21 @@ describe('backend browser fallback', () => {
 
     const saved = await backend.saveAppDataIfCurrent({
       ...snapshot.data,
-      profile: snapshot.data.profile ? { ...snapshot.data.profile, name: '米糕' } : null,
+      profile: {
+        name: '米糕',
+        species: '桌面小兔',
+        personaId: 'studyBuddy',
+        createdAt: '2026-05-30T12:00:00.000Z',
+        avatar: {
+          body: 'bunny',
+          primaryColor: '#9fd7ff',
+          secondaryColor: '#e4f5ff',
+          eyeStyle: 'sparkle',
+          mouthStyle: 'smile',
+          cheekStyle: 'peach',
+          accessory: 'headphones',
+        },
+      },
     }, snapshot.revision);
 
     expect(saved.revision).toBe(1);
