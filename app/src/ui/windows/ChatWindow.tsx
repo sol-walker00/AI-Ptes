@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
+import { defaultModelSettings } from '../../domain/modelSettings';
 import { appendPetEvent, applyPetEvent, createInitialPetState, createPetEvent } from '../../domain/petState';
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
 import type { MemorySummary, ModelSettings, PetEvent, PetProfile, PetState } from '../../domain/petTypes';
@@ -15,7 +16,7 @@ export function ChatWindow() {
   const [state, setState] = useState<PetState>(() => createInitialPetState(nowIso()));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(nowIso()));
   const [events, setEvents] = useState<PetEvent[]>([]);
-  const [settings, setSettings] = useState<ModelSettings>({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 });
+  const [settings, setSettings] = useState<ModelSettings>({ ...defaultModelSettings });
   const [messages, setMessages] = useState<UiChatMessage[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);

@@ -13,6 +13,8 @@ describe('backend browser fallback', () => {
 
     expect(data.profile?.name).toBe('桃桃');
     expect(data.state?.mood).toBe('calm');
+    expect(data.settings.baseUrl).toBe('https://api.deepseek.com');
+    expect(data.settings.model).toBe('deepseek-v4-flash');
     expect(data.events).toEqual([]);
     expect(localStorage.getItem('ai-pet-dev-app-data')).toBeNull();
   });
@@ -21,12 +23,27 @@ describe('backend browser fallback', () => {
     localStorage.setItem('ai-pet-dev-app-data', JSON.stringify({
       profile: null,
       state: null,
-      settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
+      settings: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', temperature: 0.7 },
       memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
     }));
 
     const data = await backend.loadAppData();
 
     expect(data.events).toEqual([]);
+  });
+
+  it('migrates old built-in provider defaults to DeepSeek', async () => {
+    localStorage.setItem('ai-pet-dev-app-data', JSON.stringify({
+      profile: null,
+      state: null,
+      settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
+      memory: { facts: [], recentSummary: '', updatedAt: '2026-05-30T00:00:00.000Z' },
+      events: [],
+    }));
+
+    const data = await backend.loadAppData();
+
+    expect(data.settings.baseUrl).toBe('https://api.deepseek.com');
+    expect(data.settings.model).toBe('deepseek-v4-flash');
   });
 });

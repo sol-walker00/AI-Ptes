@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createInitialPetState } from '../../domain/petState';
 import { emptyMemory } from '../../domain/memory';
+import { defaultModelSettings } from '../../domain/modelSettings';
 import type { MemorySummary, ModelSettings, PetEvent, PetPersonaId, PetProfile, PetState } from '../../domain/petTypes';
 import { backend } from '../../tauri/commands';
 
@@ -16,11 +17,7 @@ export function SettingsWindow() {
   const [petState, setPetState] = useState<PetState>(() => createInitialPetState(initialCreatedAt));
   const [memory, setMemory] = useState<MemorySummary>(() => emptyMemory(initialCreatedAt));
   const [events, setEvents] = useState<PetEvent[]>([]);
-  const [settings, setSettings] = useState<ModelSettings>({
-    baseUrl: 'https://api.openai.com/v1',
-    model: 'gpt-4.1-mini',
-    temperature: 0.7,
-  });
+  const [settings, setSettings] = useState<ModelSettings>({ ...defaultModelSettings });
   const [apiKey, setApiKey] = useState('');
   const [keyStatus, setKeyStatus] = useState<string | null>(null);
   const [message, setMessage] = useState('');

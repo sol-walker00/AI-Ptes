@@ -44,8 +44,8 @@ impl LocalStore {
             return Ok(AppData::default());
         }
         let contents = fs::read_to_string(path)?;
-        match serde_json::from_str(&contents) {
-            Ok(data) => Ok(data),
+        match serde_json::from_str::<AppData>(&contents) {
+            Ok(data) => Ok(data.migrate_built_in_model_settings()),
             Err(_) => {
                 let _ = fs::write(self.data_dir.join("app-data.corrupt.json"), contents);
                 Ok(AppData::default())
@@ -75,7 +75,8 @@ mod tests {
         store.save_app_data(&data).expect("save app data");
         let loaded = store.load_app_data().expect("load app data");
 
-        assert_eq!(loaded.settings.model, "gpt-4.1-mini");
+        assert_eq!(loaded.settings.base_url, "https://api.deepseek.com");
+        assert_eq!(loaded.settings.model, "deepseek-v4-flash");
         assert_eq!(loaded.memory.facts.len(), 0);
     }
 
@@ -88,12 +89,42 @@ mod tests {
 
         let loaded = store.load_app_data().expect("load default data");
 
-        assert_eq!(loaded.settings.model, "gpt-4.1-mini");
+        assert_eq!(loaded.settings.base_url, "https://api.deepseek.com");
+        assert_eq!(loaded.settings.model, "deepseek-v4-flash");
         assert!(dir.path().join("app-data.corrupt.json").exists());
     }
 
     #[test]
     fn legacy_app_data_without_events_loads_with_empty_event_log() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let store = LocalStore::new_for_tests(dir.path().to_path_buf());
+        fs::create_dir_all(dir.path()).expect("create data dir");
+        fs::write(
+            store.data_file(),
+            r#"{
+              "profile": null,
+              "state": null,
+              "settings": {
+                "baseUrl": "https://api.deepseek.com",
+                "model": "deepseek-v4-flash",
+                "temperature": 0.7
+              },
+              "memory": {
+                "facts": [],
+                "recentSummary": "",
+                "updatedAt": "2026-05-30T00:00:00.000Z"
+              }
+            }"#,
+        )
+        .expect("write legacy data");
+
+        let loaded = store.load_app_data().expect("load legacy data");
+
+        assert_eq!(loaded.events.len(), 0);
+    }
+
+    #[test]
+    fn old_built_in_provider_defaults_migrate_to_deepseek() {
         let dir = tempfile::tempdir().expect("tempdir");
         let store = LocalStore::new_for_tests(dir.path().to_path_buf());
         fs::create_dir_all(dir.path()).expect("create data dir");
@@ -111,13 +142,15 @@ mod tests {
                 "facts": [],
                 "recentSummary": "",
                 "updatedAt": "2026-05-30T00:00:00.000Z"
-              }
+              },
+              "events": []
             }"#,
         )
-        .expect("write legacy data");
+        .expect("write legacy default settings");
 
-        let loaded = store.load_app_data().expect("load legacy data");
+        let loaded = store.load_app_data().expect("load migrated data");
 
-        assert_eq!(loaded.events.len(), 0);
+        assert_eq!(loaded.settings.base_url, "https://api.deepseek.com");
+        assert_eq!(loaded.settings.model, "deepseek-v4-flash");
     }
 }

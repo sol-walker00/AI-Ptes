@@ -2,6 +2,7 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import { Heart, MessageCircle, Moon, Utensils } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { buildPetMessages, mapAssistantTextToReply } from '../../domain/petBrain';
+import { defaultModelSettings } from '../../domain/modelSettings';
 import { appendPetEvent, applyPetEvent, createInitialPetState, createPetEvent } from '../../domain/petState';
 import { emptyMemory, updateMemorySummary } from '../../domain/memory';
 import type { MemorySummary, ModelSettings, PetEvent, PetProfile, PetState } from '../../domain/petTypes';
@@ -20,9 +21,7 @@ const defaultProfile: PetProfile = {
 };
 
 const defaultSettings: ModelSettings = {
-  baseUrl: 'https://api.openai.com/v1',
-  model: 'gpt-4.1-mini',
-  temperature: 0.7,
+  ...defaultModelSettings,
 };
 
 export function PetWindow() {

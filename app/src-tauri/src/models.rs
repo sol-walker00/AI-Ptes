@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+pub const DEFAULT_MODEL_BASE_URL: &str = "https://api.deepseek.com";
+pub const DEFAULT_MODEL_NAME: &str = "deepseek-v4-flash";
+const LEGACY_BUILT_IN_MODEL_BASE_URL: &str = "https://api.openai.com/v1";
+const LEGACY_BUILT_IN_MODEL_NAME: &str = "gpt-4.1-mini";
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PetProfile {
@@ -64,8 +69,8 @@ impl Default for AppData {
             profile: None,
             state: None,
             settings: ModelSettings {
-                base_url: "https://api.openai.com/v1".to_string(),
-                model: "gpt-4.1-mini".to_string(),
+                base_url: DEFAULT_MODEL_BASE_URL.to_string(),
+                model: DEFAULT_MODEL_NAME.to_string(),
                 temperature: 0.7,
             },
             memory: MemorySummary {
@@ -75,5 +80,18 @@ impl Default for AppData {
             },
             events: Vec::new(),
         }
+    }
+}
+
+impl AppData {
+    pub fn migrate_built_in_model_settings(mut self) -> Self {
+        if self.settings.base_url == LEGACY_BUILT_IN_MODEL_BASE_URL
+            && self.settings.model == LEGACY_BUILT_IN_MODEL_NAME
+        {
+            self.settings.base_url = DEFAULT_MODEL_BASE_URL.to_string();
+            self.settings.model = DEFAULT_MODEL_NAME.to_string();
+        }
+
+        self
     }
 }

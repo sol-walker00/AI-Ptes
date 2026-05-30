@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import type { AppData, SendPetChatRequest, SendPetChatResponse } from './commandTypes';
 import { emptyMemory } from '../domain/memory';
+import { defaultModelSettings, migrateBuiltInModelSettings } from '../domain/modelSettings';
 import { createInitialPetState } from '../domain/petState';
 
 const devStorageKey = 'ai-pet-dev-app-data';
@@ -23,11 +24,7 @@ function defaultAppData(): AppData {
       createdAt,
     },
     state: createInitialPetState(createdAt),
-    settings: {
-      baseUrl: 'https://api.openai.com/v1',
-      model: 'gpt-4.1-mini',
-      temperature: 0.7,
-    },
+    settings: { ...defaultModelSettings },
     memory: emptyMemory(createdAt),
     events: [],
   };
@@ -36,6 +33,7 @@ function defaultAppData(): AppData {
 function normalizeAppData(data: AppData): AppData {
   return {
     ...data,
+    settings: migrateBuiltInModelSettings(data.settings),
     events: Array.isArray(data.events) ? data.events : [],
   };
 }

@@ -9,7 +9,7 @@ vi.mock('../../tauri/commands', () => ({
     loadAppData: vi.fn().mockResolvedValue({
       profile: { name: '小梨', species: '桌面小猫', personaId: 'healing', createdAt: '2026-05-30T00:00:00.000Z' },
       state: { mood: 'calm', hunger: 30, energy: 70, intimacy: 42, action: 'idle', lastInteractionAt: '2026-05-30T00:00:00.000Z' },
-      settings: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4.1-mini', temperature: 0.7 },
+      settings: { baseUrl: 'https://api.deepseek.com', model: 'deepseek-v4-flash', temperature: 0.7 },
       memory: { facts: ['用户喜欢安静写代码'], recentSummary: '写代码时需要陪伴', updatedAt: '2026-05-30T00:00:00.000Z' },
       events: [{ id: 'chat-1', kind: 'chat', createdAt: '2026-05-30T00:00:00.000Z', intensity: 0.5, quality: 0.9, note: '写代码' }],
     }),
