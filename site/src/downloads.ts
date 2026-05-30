@@ -9,12 +9,12 @@ export const releaseVersion = '0.1.0';
 export const desktopDownloads: DesktopDownload[] = [
   {
     platform: 'macos',
-    label: 'macOS',
+    label: '下载 macOS 版',
     url: '',
   },
   {
     platform: 'windows',
-    label: 'Windows',
+    label: '下载 Windows 版',
     url: '',
   },
 ];
