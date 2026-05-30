@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@desktop-pet/domain/*": ["../app/src/domain/*"],
+      "@desktop-pet/ui/*": ["../app/src/ui/*"]
+    }
+  },
+  "include": ["src", "../app/src/domain", "../app/src/ui/components"],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "../app/src/**/*.test.ts",
+    "../app/src/**/*.test.tsx"
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
