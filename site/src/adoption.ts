@@ -23,6 +23,15 @@ export function createAdoptionDocument(
   options: AdoptionDocumentOptions = {},
 ): PetAdoptionDocument {
   const createdAt = options.createdAt ?? new Date().toISOString();
+  const name = profile.name.trim();
+  const species = profile.species.trim();
+
+  if (!name) {
+    throw new Error('宠物名字不能为空');
+  }
+  if (!species) {
+    throw new Error('宠物形象不能为空');
+  }
 
   return {
     format: petAdoptionFormat,
@@ -30,8 +39,8 @@ export function createAdoptionDocument(
     adoptionId: options.id ?? createAdoptionId(),
     createdAt,
     profile: {
-      name: profile.name.trim(),
-      species: profile.species.trim(),
+      name,
+      species,
       personaId: profile.personaId,
       createdAt,
       avatar: normalizePetAvatar(profile.avatar),
@@ -45,13 +54,20 @@ export function downloadAdoptionDocument(document: PetAdoptionDocument): void {
   });
   const url = URL.createObjectURL(blob);
   const link = window.document.createElement('a');
+  let attached = false;
 
   link.href = url;
   link.download = 'adoption.pet';
-  window.document.body.appendChild(link);
-  link.click();
-  window.document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    window.document.body.appendChild(link);
+    attached = true;
+    link.click();
+  } finally {
+    if (attached) {
+      window.document.body.removeChild(link);
+    }
+    URL.revokeObjectURL(url);
+  }
 }
 
 function createAdoptionId(): string {
