@@ -445,6 +445,11 @@ textarea {
   opacity: 0.62;
 }
 
+.adoption-import-file-button:focus-within {
+  outline: 2px solid #2f6f5e;
+  outline-offset: 2px;
+}
+
 .adoption-import-file-button input {
   position: absolute;
   width: 1px;

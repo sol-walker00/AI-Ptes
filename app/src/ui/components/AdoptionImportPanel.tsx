@@ -49,7 +49,7 @@ export function AdoptionImportPanel({ onImport, onCreateLocally }: AdoptionImpor
             onChange={(event) => void importFile(event.currentTarget.files?.[0])}
           />
         </label>
-        <button className="secondary-button adoption-import-local-button" type="button" onClick={onCreateLocally}>
+        <button className="secondary-button adoption-import-local-button" type="button" onClick={onCreateLocally} disabled={busy}>
           <PenLine size={18} />
           本地创建新宠物
         </button>

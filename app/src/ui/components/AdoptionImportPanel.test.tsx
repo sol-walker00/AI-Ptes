@@ -84,6 +84,27 @@ describe('AdoptionImportPanel', () => {
     expect(await screen.findByText('桃桃 已准备回家。')).toBeInTheDocument();
   });
 
+  it('disables local creation while an import is in progress', async () => {
+    const user = userEvent.setup();
+    let finishImport: () => void = () => {};
+    const onImport = vi.fn(() => new Promise<void>((resolve) => {
+      finishImport = resolve;
+    }));
+    const onCreateLocally = vi.fn();
+    render(<AdoptionImportPanel onImport={onImport} onCreateLocally={onCreateLocally} />);
+
+    await user.upload(screen.getByLabelText('选择领养档案'), validPetFile);
+
+    const localCreateButton = screen.getByRole('button', { name: '本地创建新宠物' });
+    expect(localCreateButton).toBeDisabled();
+
+    await user.click(localCreateButton);
+    expect(onCreateLocally).not.toHaveBeenCalled();
+
+    finishImport();
+    expect(await screen.findByText('桃桃 已准备回家。')).toBeInTheDocument();
+  });
+
   it('lets the user continue with local creation', async () => {
     const user = userEvent.setup();
     const onCreateLocally = vi.fn();
