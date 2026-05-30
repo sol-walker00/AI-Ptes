@@ -13,6 +13,7 @@ export const desktopDownloadFiles = {
 
 interface DesktopDownloadOptions {
   baseUrl?: string;
+  localBaseUrl?: string;
 }
 
 function joinDownloadUrl(baseUrl: string, fileName: string) {
@@ -21,6 +22,7 @@ function joinDownloadUrl(baseUrl: string, fileName: string) {
 
 export function buildDesktopDownloads(options: DesktopDownloadOptions = {}): DesktopDownload[] {
   const baseUrl = options.baseUrl?.trim();
+  const localDownloadsBaseUrl = joinDownloadUrl(options.localBaseUrl?.trim() || '/', 'downloads');
 
   return [
     {
@@ -28,14 +30,14 @@ export function buildDesktopDownloads(options: DesktopDownloadOptions = {}): Des
       label: '下载 macOS 版',
       url: baseUrl
         ? joinDownloadUrl(baseUrl, desktopDownloadFiles.macos)
-        : `/downloads/${desktopDownloadFiles.macos}`,
+        : joinDownloadUrl(localDownloadsBaseUrl, desktopDownloadFiles.macos),
     },
     {
       platform: 'windows',
       label: '下载 Windows 版',
       url: baseUrl
         ? joinDownloadUrl(baseUrl, desktopDownloadFiles.windows)
-        : `/downloads/${desktopDownloadFiles.windows}`,
+        : joinDownloadUrl(localDownloadsBaseUrl, desktopDownloadFiles.windows),
     },
   ];
 }
@@ -44,4 +46,5 @@ const desktopDownloadBaseUrl = import.meta.env.VITE_DESKTOP_DOWNLOAD_BASE_URL;
 
 export const desktopDownloads = buildDesktopDownloads({
   baseUrl: typeof desktopDownloadBaseUrl === 'string' ? desktopDownloadBaseUrl : undefined,
+  localBaseUrl: import.meta.env.BASE_URL,
 });

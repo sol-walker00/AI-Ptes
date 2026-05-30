@@ -31,4 +31,17 @@ describe('desktop download configuration', () => {
       `/downloads/Desktop-AI-Pet-${releaseVersion}-windows-x64.zip`,
     );
   });
+
+  it('respects the site base URL for bundled local downloads', () => {
+    const downloads = buildDesktopDownloads({
+      localBaseUrl: '/desktop-pet/',
+    });
+
+    expect(downloads.find((download) => download.platform === 'macos')?.url).toBe(
+      `/desktop-pet/downloads/Desktop-AI-Pet-${releaseVersion}-macos-aarch64.zip`,
+    );
+    expect(downloads.find((download) => download.platform === 'windows')?.url).toBe(
+      `/desktop-pet/downloads/Desktop-AI-Pet-${releaseVersion}-windows-x64.zip`,
+    );
+  });
 });
