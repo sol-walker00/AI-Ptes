@@ -10,7 +10,7 @@ export const desktopDownloads: DesktopDownload[] = [
   {
     platform: 'macos',
     label: '下载 macOS 版',
-    url: '',
+    url: '/downloads/Desktop-AI-Pet-0.1.0-macos-aarch64.zip',
   },
   {
     platform: 'windows',

@@ -122,10 +122,13 @@ describe('SiteApp', () => {
     expect(screen.getByRole('status')).toHaveTextContent('下载失败，请重试。');
   });
 
-  it('shows static download buttons as unavailable before installers are configured', () => {
+  it('shows macOS download link and keeps Windows unavailable before its installer is configured', () => {
     render(<SiteApp />);
 
-    expect(screen.getByRole('button', { name: '下载 macOS 版' })).toBeDisabled();
+    expect(screen.getByRole('link', { name: '下载 macOS 版' })).toHaveAttribute(
+      'href',
+      '/downloads/Desktop-AI-Pet-0.1.0-macos-aarch64.zip',
+    );
     expect(screen.getByRole('button', { name: '下载 Windows 版' })).toBeDisabled();
     expect(screen.getByText('客户端安装包即将开放')).toBeInTheDocument();
   });
